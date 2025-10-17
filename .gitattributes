@@ -1,0 +1,61 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.cs text diff=csharp
+*.ts text diff=typescript
+*.js text
+*.json text
+*.html text diff=html
+*.css text diff=css
+*.scss text
+*.sql text
+
+# Documentation
+*.md text
+*.txt text
+README text
+
+# Scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# These files are binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.eot binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.rar binary
+
+# Compiled files
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+
+# Database
+*.db binary
+*.sqlite binary
+*.mdf binary
+*.ldf binary
+
+# Package managers
+package-lock.json -diff
+yarn.lock -diff
+pnpm-lock.yaml -diff
+
+# Build outputs (mark as binary to avoid diff noise)
+*.min.js binary
+*.min.css binary
