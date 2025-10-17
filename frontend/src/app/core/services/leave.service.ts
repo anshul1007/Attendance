@@ -62,25 +62,55 @@ export class LeaveService {
       );
   }
 
-  getLeaveRequestById(id: string): Observable<LeaveRequest> {
-    return this.http.get<ApiResponse<LeaveRequest>>(`${this.apiUrl}/${id}`)
+  getPendingLeaveRequestsForApproval(): Observable<LeaveRequest[]> {
+    return this.http.get<ApiResponse<LeaveRequest[]>>(`${this.apiUrl}/pending-approvals`)
       .pipe(
         map(response => {
           if (response.success && response.data) {
             return response.data;
           }
-          throw new Error(response.error || 'Failed to fetch leave request');
+          throw new Error(response.error || 'Failed to fetch pending leave requests');
         })
       );
   }
 
-  cancelLeaveRequest(id: string): Observable<void> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`)
+  approveLeave(leaveRequestId: string): Observable<void> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/approve`, { 
+      leaveRequestId, 
+      isApproved: true 
+    })
       .pipe(
         map(response => {
           if (!response.success) {
-            throw new Error(response.error || 'Failed to cancel leave request');
+            throw new Error(response.error || 'Failed to approve leave');
           }
+        })
+      );
+  }
+
+  rejectLeave(leaveRequestId: string, rejectionReason: string): Observable<void> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/approve`, { 
+      leaveRequestId, 
+      isApproved: false,
+      rejectionReason 
+    })
+      .pipe(
+        map(response => {
+          if (!response.success) {
+            throw new Error(response.error || 'Failed to reject leave');
+          }
+        })
+      );
+  }
+
+  cancelLeaveRequest(leaveRequestId: string): Observable<LeaveRequestResponse> {
+    return this.http.post<ApiResponse<LeaveRequestResponse>>(`${this.apiUrl}/cancel/${leaveRequestId}`, {})
+      .pipe(
+        map(response => {
+          if (response.success && response.data) {
+            return response.data;
+          }
+          throw new Error(response.error || 'Failed to cancel leave request');
         })
       );
   }

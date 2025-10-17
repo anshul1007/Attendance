@@ -53,6 +53,12 @@ export class AuthService {
       .pipe(
         tap(() => {
           this.clearAuthData();
+        }),
+        // Catch errors to ensure auth data is cleared even if API call fails
+        tap({
+          error: () => {
+            this.clearAuthData();
+          }
         })
       );
   }

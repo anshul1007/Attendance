@@ -1,38 +1,73 @@
-# Attendance Management - Frontend
+# Frontend# Attendance Management - Frontend
 
-Angular 18 application for Employee Attendance and Leave Management System.
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.5.
 
-## Prerequisites
+Angular 18 application for attendance management.Angular 18 application for Employee Attendance and Leave Management System.
 
-- Node.js 18 or higher
+
+
+## Quick StartThis project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.5.
+
+
+
+```powershell## Prerequisites
+
+# Install dependencies
+
+npm install- Node.js 18 or higher
+
 - npm 9 or higher
-- Angular CLI 18
 
-## Development server
+# Start dev server- Angular CLI 18
 
-To start a local development server, run:
+npm start
 
-```bash
+```## Development server
+
+
+
+**App:** http://localhost:4200To start a local development server, run:
+
+
+
+## Commands```bash
+
 ng serve
-```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+```powershell```
+
+# Development
+
+npm start                    # Start dev serverOnce the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+
+ng serve --open             # Open in browser
 
 ## Code scaffolding
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+# Build
 
-```bash
-ng generate component component-name
+npm run build               # Production buildAngular CLI includes powerful code scaffolding tools. To generate a new component, run:
+
+
+
+# Generate```bash
+
+ng generate component name  # New componentng generate component component-name
+
+ng generate service name    # New service```
+
 ```
 
 For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
 
+## Configuration
+
 ```bash
-ng generate --help
-```
+
+Update `src/environments/environment.ts`:ng generate --help
+
+- API URL (default: http://localhost:5146/api)```
+
 
 ## Building
 

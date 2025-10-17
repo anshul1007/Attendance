@@ -1,33 +1,63 @@
-# Attendance Management - Backend API
+# Backend API# Attendance Management - Backend API
 
-.NET 8 Web API for Employee Attendance and Leave Management System.
 
-## Prerequisites
 
-- .NET 8 SDK or higher
-- SQL Server 2019+ or PostgreSQL 14+
-- Visual Studio 2022 or VS Code
+.NET 8 Web API with Azure PostgreSQL..NET 8 Web API for Employee Attendance and Leave Management System.
 
-## Installation
 
-### 1. Restore NuGet Packages
 
-```powershell
-cd backend/AttendanceAPI
+## Quick Start## Prerequisites
+
+
+
+```powershell- .NET 8 SDK or higher
+
+# Install all packages- SQL Server 2019+ or PostgreSQL 14+
+
+.\setup-packages.ps1- Visual Studio 2022 or VS Code
+
+
+
+# Start API## Installation
+
+.\start-api.ps1
+
+```### 1. Restore NuGet Packages
+
+
+
+**API:** http://localhost:5146  ```powershell
+
+**Swagger:** http://localhost:5146/swaggercd backend/AttendanceAPI
+
 dotnet restore
-```
 
-### 2. Install Required Packages
+## Implementation```
 
-```powershell
-# Entity Framework Core
-dotnet add package Microsoft.EntityFrameworkCore
+
+
+See [SETUP_GUIDE.md](../SETUP_GUIDE.md) for:### 2. Install Required Packages
+
+- Entity models
+
+- DbContext setup  ```powershell
+
+- Database migrations# Entity Framework Core
+
+- Controller implementationdotnet add package Microsoft.EntityFrameworkCore
+
 dotnet add package Microsoft.EntityFrameworkCore.SqlServer
-dotnet add package Microsoft.EntityFrameworkCore.Tools
+
+## Configurationdotnet add package Microsoft.EntityFrameworkCore.Tools
+
 dotnet add package Microsoft.EntityFrameworkCore.Design
 
-# Authentication
-dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+Update `AttendanceAPI/appsettings.json`:
+
+- Azure PostgreSQL password# Authentication
+
+- JWT secret keydotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+
 dotnet add package System.IdentityModel.Tokens.Jwt
 
 # Password Hashing

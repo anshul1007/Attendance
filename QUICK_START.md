@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-> **Need detailed setup?** See the [Complete Setup Guide](SETUP_GUIDE.md) for step-by-step instructions.
+> **Need detailed setup?** See the [Complete Setup Guide](SETUP_GUIDE.md) for step-by-step instructions including entity models and migrations.
 
 ## 🚀 Get Started in 5 Minutes
 
@@ -12,7 +12,11 @@ node --version
 # Check .NET (should be 8.0+)
 dotnet --version
 
+# Check EF Core tools
+dotnet ef --version
+
 # Check Azure database access
+cd E:\Attendance
 .\scripts\test-azure-connection.ps1
 ```
 
@@ -29,18 +33,24 @@ npm install
 
 ---
 
-## Step 2: Setup Backend
+## Step 2: Install Backend Packages
 
 ```powershell
 cd E:\Attendance\backend
 .\setup-packages.ps1
 ```
 
+This installs:
+- Entity Framework Core + Npgsql (PostgreSQL)
+- JWT Authentication
+- BCrypt, AutoMapper, FluentValidation, Serilog
+- dotnet-ef tools (if not already installed)
+
 **Time:** ~2 minutes
 
 ---
 
-## Step 3: Configure Azure Database
+## Step 3: Configure Azure PostgreSQL Connection
 
 1. **Update password** in `backend/AttendanceAPI/appsettings.json`:
    ```json
@@ -49,210 +59,177 @@ cd E:\Attendance\backend
    }
    ```
 
-2. **Configure Azure firewall** (add your IP in Azure Portal)
+2. **Configure Azure firewall**:
+   - Go to [Azure Portal](https://portal.azure.com)
+   - Navigate to your PostgreSQL server
+   - Add your client IP address in "Connection Security" or "Networking"
 
 3. **Test connection**:
    ```powershell
+   cd E:\Attendance
    .\scripts\test-azure-connection.ps1
    ```
 
-> **Detailed instructions:** See [SETUP_GUIDE.md](SETUP_GUIDE.md) for complete database setup
+> **Detailed instructions:** See [SETUP_GUIDE.md](SETUP_GUIDE.md) for complete Azure database setup
 
 ---
 
-## Step 4: Run Applications
+## Step 4: Implement Database Models
 
-### Terminal 1 - Backend
+⚠️ **Before running the application**, you need to implement the database layer:
+
+### Quick Implementation (Copy-Paste from SETUP_GUIDE.md)
+
+1. **Create entity models** (6 files in `backend/AttendanceAPI/Models/Entities/`):
+   - User.cs
+   - Attendance.cs
+   - LeaveRequest.cs
+   - LeaveEntitlement.cs
+   - PublicHoliday.cs
+   - AuditLog.cs
+
+2. **Create DbContext** (`backend/AttendanceAPI/Data/ApplicationDbContext.cs`)
+
+3. **Update Program.cs** to register DbContext
+
+**All code is ready to copy-paste from [SETUP_GUIDE.md](SETUP_GUIDE.md) Section "Implement Database Models"**
+
+---
+
+## Step 5: Run Database Migrations
+
 ```powershell
-# Option 1: Use the startup script (Recommended)
+cd E:\Attendance\backend\AttendanceAPI
+
+# Create migration
+dotnet ef migrations add InitialCreate
+
+# Apply to Azure database
+dotnet ef database update
+```
+
+---
+
+## Step 6: Start Applications
+
+### Option 1: Start Both at Once (Recommended)
+```powershell
+cd E:\Attendance
+.\scripts\start-all.ps1
+```
+
+### Option 2: Start Separately
+
+**Terminal 1 - Backend:**
+```powershell
 cd E:\Attendance\backend
 .\start-api.ps1
-
-# Option 2: Manual start
-cd E:\Attendance\backend\AttendanceAPI
-dotnet run
 ```
-✅ API running at: https://localhost:7001 (check terminal for actual port)  
-✅ Swagger at: https://localhost:7001/swagger
+✅ API running at: http://localhost:5146  
+✅ Swagger at: http://localhost:5146/swagger
 
-### Terminal 2 - Frontend
+**Terminal 2 - Frontend:**
 ```powershell
-# Option 1: Use the startup script (Recommended)
-cd E:\Attendance\frontend
-.\start-frontend.ps1
-
-# Option 2: Manual start
 cd E:\Attendance\frontend
 npm start
 ```
 ✅ App running at: http://localhost:4200
 
-### Option 3: Start Both at Once
-```powershell
-# This will launch both in separate windows
-cd E:\Attendance
-.\start-all.ps1
-```
-
 ---
 
 ## 🎯 Default Login Credentials
 
-(To be created after database setup)
+⚠️ **Not yet created** - These will be created after implementing the database:
 
 **Administrator:**
 - Email: `admin@company.com`
 - Password: `Admin@123`
 
-**Manager:**
-- Email: `manager@company.com`
-- Password: `Manager@123`
-
-**Employee:**
-- Email: `employee@company.com`
-- Password: `Employee@123`
+To create the admin user, see [SETUP_GUIDE.md](SETUP_GUIDE.md) Section "Insert Sample Data"
 
 ---
 
-## 📝 What's Already Done
+## 📝 Current Project Status
 
-✅ Project structure created  
-✅ Frontend Angular app initialized  
-✅ Backend .NET API project created  
-✅ Complete documentation  
-✅ Database schema designed  
-✅ API endpoints documented  
-✅ Authentication & authorization setup  
-✅ Core services and models  
-✅ Login page & employee dashboard  
-✅ Deployment guides  
+✅ **Completed:**
+- Project structure organized
+- Frontend Angular 18 app with authentication
+- Backend .NET 8 API project
+- Azure PostgreSQL database configured
+- Complete documentation (consolidated and organized)
+- Git configuration (.gitignore, .gitattributes)
+- All NuGet packages installed
+- EF Core tools installed
+- Startup scripts created
 
----
-
-## 📋 What Needs to Be Completed
-
-### Backend (Priority)
-1. Create entity models (User, Attendance, Leave, etc.)
-2. Create DbContext and configure relationships
-3. Implement controllers (Auth, Attendance, Leave, Admin)
-4. Implement services with business logic
-5. Configure JWT authentication in Program.cs
-6. Create and apply EF Core migrations
-7. Seed initial data
-
-### Frontend (After Backend)
-1. Complete employee module (attendance history, leave request)
-2. Complete manager module (approvals, team reports)
-3. Complete admin module (user management, holidays)
-4. Add validation and error handling
-5. Add loading states and animations
+⏳ **Ready to Implement:**
+- Entity Models (code ready in SETUP_GUIDE.md)
+- DbContext (code ready in SETUP_GUIDE.md)
+- Database migrations
+- Controllers and services
+- Sample data seeding
 
 ---
 
-## 🔗 Important Links
+## 📋 Implementation Checklist
 
-| Resource | Location |
-|----------|----------|
-| Main README | `/README.md` |
-| Architecture | `/docs/ARCHITECTURE.md` |
-| Database Schema | `/docs/DATABASE.md` |
-| API Documentation | `/docs/API.md` |
-| Deployment Guide | `/docs/DEPLOYMENT.md` |
-| Flow Diagrams | `/docs/diagrams/FLOWS.md` |
-| Project Summary | `/PROJECT_SUMMARY.md` |
+Use this checklist to track your progress:
 
----
+### Database Layer
+- [ ] Create `Models/Entities/` folder
+- [ ] Copy 6 entity model files from SETUP_GUIDE.md
+- [ ] Create `Data/` folder
+- [ ] Copy ApplicationDbContext.cs from SETUP_GUIDE.md
+- [ ] Update Program.cs with DbContext configuration
+- [ ] Run `dotnet ef migrations add InitialCreate`
+- [ ] Run `dotnet ef database update`
+- [ ] Insert sample data (admin user, holidays)
 
-## 💡 Helpful Commands
+### API Layer
+- [ ] Implement AuthController (login, register)
+- [ ] Implement AttendanceController (login/logout, history)
+- [ ] Implement LeaveController (request, approve, list)
+- [ ] Implement ManagerController (team approvals)
+- [ ] Implement AdminController (user management)
+- [ ] Configure JWT authentication
+- [ ] Add authorization policies
 
-### Frontend
-```powershell
-# Start dev server
-npm start
-
-# Build for production
-npm run build -- --configuration production
-
-# Run tests
-npm test
-
-# Generate component
-ng generate component features/employee/attendance-history
-```
-
-### Backend
-```powershell
-# Run API
-dotnet run
-
-# Run with hot reload
-dotnet watch run
-
-# Create migration
-dotnet ef migrations add MigrationName
-
-# Update database
-dotnet ef database update
-
-# Build for production
-dotnet publish -c Release
-```
+### Frontend Integration
+- [ ] Test login functionality
+- [ ] Verify attendance tracking works
+- [ ] Test leave request flow
+- [ ] Complete manager approval interface
+- [ ] Complete admin user management
 
 ---
 
-## 🐛 Troubleshooting
+## 🔗 Essential Documentation
 
-### Frontend won't start
-```powershell
-# Clear npm cache and reinstall
-cd frontend
-Remove-Item -Recurse -Force node_modules
-Remove-Item package-lock.json
-npm install
-```
-
-### Backend build errors
-```powershell
-# Clean and restore
-cd backend/AttendanceAPI
-dotnet clean
-dotnet restore
-dotnet build
-```
-
-### Database connection failed
-1. Verify SQL Server is running
-2. Check connection string in appsettings.json
-3. Test connection with SQL Server Management Studio
-
-### Port already in use
-- Frontend: Update `angular.json` port configuration
-- Backend: Update `Properties/launchSettings.json` ports
+| Document | Purpose |
+|----------|---------|
+| **[SETUP_GUIDE.md](SETUP_GUIDE.md)** | Complete setup with entity code |
+| [README.md](README.md) | Project overview |
+| [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) | Current status & features |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues |
+| [docs/DATABASE.md](docs/DATABASE.md) | PostgreSQL schema |
+| [docs/API.md](docs/API.md) | API endpoints |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design |
 
 ---
 
-## 📞 Need Help?
-
-1. Check `/docs` folder for detailed documentation
-2. Review `PROJECT_SUMMARY.md` for current status
-3. Check README files in frontend and backend folders
-4. Review flow diagrams in `/docs/diagrams`
-
 ---
 
-## ✅ Next Actions
+## Next Steps
 
-Run this command to install backend packages:
-```powershell
-cd E:\Attendance\backend
-.\setup-packages.ps1
-```
+1. **Run setup script:**
+   ```powershell
+   cd E:\Attendance\backend
+   .\setup-packages.ps1
+   ```
 
-Then review:
-- `/PROJECT_SUMMARY.md` - See what's done and what's next
-- `/docs/ARCHITECTURE.md` - Understand the system design
-- `/docs/DATABASE.md` - Review database structure
-
----
+2. **Review documentation:**
+   - [SETUP_GUIDE.md](SETUP_GUIDE.md) - Entity models & migrations
+   - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Project status
+   - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues
 
 **Happy Coding! 🎉**

@@ -1,0 +1,168 @@
+<div class="manager-dashboard">
+  <div class="dashboard-header">
+    <h1>Manager Dashboard</h1>
+    <p>Welcome, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+  </div>
+
+  @if (message()) {
+    <div class="alert" [class.alert-success]="!error()" [class.alert-danger]="error()">
+      {{ message() }}
+    </div>
+  }
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab-button" 
+            [class.active]="activeTab() === 'attendance'"
+            (click)="setActiveTab('attendance')">
+      Team Attendance
+    </button>
+    <button class="tab-button" 
+            [class.active]="activeTab() === 'leaves'"
+            (click)="setActiveTab('leaves')">
+      Leave Approvals
+    </button>
+  </div>
+
+  <!-- Team Attendance Tab -->
+  @if (activeTab() === 'attendance') {
+    <div class="attendance-section card">
+      <div class="section-header">
+        <h2>Team Attendance</h2>
+        <div class="date-selector">
+          <label for="date">Select Date:</label>
+          <input 
+            type="date" 
+            id="date" 
+            [value]="selectedDate()" 
+            (change)="onDateChange($event)"
+            class="form-control">
+        </div>
+      </div>
+
+      @if (loading()) {
+        <p>Loading team attendance...</p>
+      } @else if (teamAttendance().length > 0) {
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Login Time</th>
+                <th>Logout Time</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (record of teamAttendance(); track record.id) {
+                <tr>
+                  <td>
+                    <div class="employee-info">
+                      <strong>{{ record.user?.firstName }} {{ record.user?.lastName }}</strong>
+                      <small>{{ record.user?.employeeId }}</small>
+                    </div>
+                  </td>
+                  <td>{{ record.loginTime | date:'short' }}</td>
+                  <td>{{ record.logoutTime ? (record.logoutTime | date:'short') : '-' }}</td>
+                  <td>
+                    @if (record.isWeekend) {
+                      <span class="badge badge-info">Weekend</span>
+                    } @else if (record.isPublicHoliday) {
+                      <span class="badge badge-warning">Holiday</span>
+                    } @else {
+                      <span class="badge badge-secondary">Regular</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="badge" 
+                          [class.badge-success]="record.status === 'Approved'"
+                          [class.badge-warning]="record.status === 'Pending'"
+                          [class.badge-danger]="record.status === 'Rejected'">
+                      {{ record.status }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (record.status === 'Pending') {
+                      <div class="action-buttons">
+                        <button class="btn btn-sm btn-success" (click)="approveAttendance(record.id)">
+                          Approve
+                        </button>
+                        <button class="btn btn-sm btn-danger" (click)="rejectAttendance(record.id)">
+                          Reject
+                        </button>
+                      </div>
+                    } @else {
+                      <span class="text-muted">{{ record.status }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="no-data">No attendance records found for this date</p>
+      }
+    </div>
+  }
+
+  <!-- Leave Approvals Tab -->
+  @if (activeTab() === 'leaves') {
+    <div class="leaves-section card">
+      <h2>Pending Leave Approvals</h2>
+
+      @if (pendingLeaveRequests().length > 0) {
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Leave Type</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Days</th>
+                <th>Reason</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (request of pendingLeaveRequests(); track request.id) {
+                <tr>
+                  <td>
+                    <div class="employee-info">
+                      <strong>{{ request.user?.firstName }} {{ request.user?.lastName }}</strong>
+                      <small>{{ request.user?.employeeId }}</small>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="leave-type-badge">
+                      {{ getLeaveTypeName(request.leaveType) }}
+                    </span>
+                  </td>
+                  <td>{{ request.startDate | date:'mediumDate' }}</td>
+                  <td>{{ request.endDate | date:'mediumDate' }}</td>
+                  <td><strong>{{ request.totalDays }}</strong></td>
+                  <td>{{ request.reason }}</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn btn-sm btn-success" (click)="approveLeave(request.id)">
+                        Approve
+                      </button>
+                      <button class="btn btn-sm btn-danger" (click)="rejectLeave(request.id)">
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="no-data">No pending leave requests</p>
+      }
+    </div>
+  }
+</div>

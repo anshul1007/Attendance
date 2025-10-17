@@ -10,19 +10,17 @@ This system provides a complete solution for managing employee attendance, leave
 
 ## 📚 Documentation
 
-### Getting Started
-- **[Quick Start Guide](QUICK_START.md)** - Get up and running in 5 minutes
-- **[Complete Setup Guide](SETUP_GUIDE.md)** ⭐ - Azure PostgreSQL, EF Core, and database migrations
-- **[Project Status](PROJECT_STATUS.md)** - File organization and current status
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[QUICK_START.md](QUICK_START.md)** - 5-minute setup guide
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Complete implementation guide
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Project status & features
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues
 
-### Technical Documentation
-- **[Documentation Index](docs/INDEX.md)** - Complete documentation navigation
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and patterns
-- **[Database Schema](docs/DATABASE.md)** - PostgreSQL schema, tables, and indexes
-- **[API Documentation](docs/API.md)** - All API endpoints
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Deployment to Azure, AWS, Docker
-- **[Flow Diagrams](docs/diagrams/FLOWS.md)** - Business process flows
+### Technical Docs
+- [Architecture](docs/ARCHITECTURE.md) - System design
+- [Database](docs/DATABASE.md) - PostgreSQL schema
+- [API](docs/API.md) - Endpoints & authentication
+- [Deployment](docs/DEPLOYMENT.md) - Azure, AWS, Docker
+- [Flows](docs/diagrams/FLOWS.md) - Process diagrams
 
 ## 📁 Project Structure
 
@@ -51,20 +49,45 @@ Attendance/
 ├── archive/               # Legacy/Reference Files
 │   └── DATABASE_SQLSERVER.md        # SQL Server version
 │
-├── README.md              # Project overview (you are here)
+├── .gitignore             # Git ignore rules
+├── .gitattributes         # Git line endings
+├── README.md              # This file
 ├── QUICK_START.md         # 5-minute setup
-├── SETUP_GUIDE.md         # Complete setup guide
-├── PROJECT_SUMMARY.md     # Current status
+├── SETUP_GUIDE.md         # Complete guide
+├── PROJECT_SUMMARY.md     # Project status
 └── TROUBLESHOOTING.md     # Common issues
 ```
 
-## 🚀 Quick Start
+## � Version Control
+
+This project uses Git for version control:
+
+```powershell
+# Clone repository (if from remote)
+git clone <repository-url>
+
+# Check status
+git status
+
+# View what's ignored
+git check-ignore -v backend/bin/
+```
+
+**Important:** Sensitive files are automatically excluded via `.gitignore`:
+- Connection strings with real passwords
+- Build outputs (bin/, obj/, node_modules/)
+- User-specific IDE settings
+
+See **[GIT_SETUP.md](GIT_SETUP.md)** for detailed Git configuration.
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
 - **Frontend**: Node.js 18+ and npm
 - **Backend**: .NET 8 SDK
-- **Database**: PostgreSQL 13+ (recommended) or SQL Server 2019+
+- **Database**: Azure PostgreSQL (configured)
+- **Git**: For version control
 
 ### Frontend Setup
 
@@ -78,13 +101,14 @@ The application will run on `http://localhost:4200`
 
 ### Backend Setup
 
-```bash
+```powershell
 cd backend
-dotnet restore
-dotnet run
+.\setup-packages.ps1  # Install packages & EF tools
+.\start-api.ps1       # Start API
 ```
 
-The API will run on `https://localhost:7001` and `http://localhost:5001`
+API: `http://localhost:5146`  
+Swagger: `http://localhost:5146/swagger`
 
 ## 👥 User Roles
 

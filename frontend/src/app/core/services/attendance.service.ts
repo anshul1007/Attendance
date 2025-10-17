@@ -31,14 +31,79 @@ export class AttendanceService {
       );
   }
 
-  logout(request: AttendanceLogoutRequest): Observable<AttendanceResponse> {
-    return this.http.post<ApiResponse<AttendanceResponse>>(`${this.apiUrl}/logout`, request)
+  logout(): Observable<AttendanceResponse> {
+    return this.http.post<ApiResponse<AttendanceResponse>>(`${this.apiUrl}/logout`, {})
       .pipe(
         map(response => {
           if (response.success && response.data) {
             return response.data;
           }
           throw new Error(response.error || 'Attendance logout failed');
+        })
+      );
+  }
+
+  getTodayAttendance(): Observable<AttendanceResponse | null> {
+    return this.http.get<ApiResponse<AttendanceResponse>>(`${this.apiUrl}/today`)
+      .pipe(
+        map(response => {
+          if (response.success) {
+            return response.data || null;
+          }
+          throw new Error(response.error || 'Failed to fetch today attendance');
+        })
+      );
+  }
+
+  getAttendanceHistory(startDate?: string, endDate?: string): Observable<Attendance[]> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+    
+    return this.http.get<ApiResponse<Attendance[]>>(`${this.apiUrl}/history`, { params })
+      .pipe(
+        map(response => {
+          if (response.success && response.data) {
+            return response.data;
+          }
+          throw new Error(response.error || 'Failed to fetch attendance history');
+        })
+      );
+  }
+
+  getTeamAttendance(date?: string): Observable<Attendance[]> {
+    let params = new HttpParams();
+    if (date) params = params.set('date', date);
+    
+    return this.http.get<ApiResponse<Attendance[]>>(`${this.apiUrl}/team`, { params })
+      .pipe(
+        map(response => {
+          if (response.success && response.data) {
+            return response.data;
+          }
+          throw new Error(response.error || 'Failed to fetch team attendance');
+        })
+      );
+  }
+
+  approveAttendance(attendanceId: string): Observable<void> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/approve`, { attendanceId })
+      .pipe(
+        map(response => {
+          if (!response.success) {
+            throw new Error(response.error || 'Failed to approve attendance');
+          }
+        })
+      );
+  }
+
+  rejectAttendance(attendanceId: string, reason: string): Observable<void> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/reject`, { attendanceId, reason })
+      .pipe(
+        map(response => {
+          if (!response.success) {
+            throw new Error(response.error || 'Failed to reject attendance');
+          }
         })
       );
   }

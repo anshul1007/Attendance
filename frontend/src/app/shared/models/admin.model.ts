@@ -8,6 +8,17 @@ export interface PublicHoliday {
   createdAt: Date;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  employeeId: string;
+  role: string;
+  managerId?: string;
+  isActive: boolean;
+}
+
 export interface CreateUserRequest {
   email: string;
   firstName: string;
@@ -16,6 +27,15 @@ export interface CreateUserRequest {
   role: string;
   managerId?: string;
   password: string;
+}
+
+export interface UpdateUserRequest {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  managerId?: string;
+  isActive?: boolean;
 }
 
 export interface LeaveEntitlement {

@@ -1,0 +1,227 @@
+<div class="admin-dashboard">
+  <div class="dashboard-header">
+    <h1>Admin Dashboard</h1>
+    <p>Welcome, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+  </div>
+
+  @if (message()) {
+    <div class="alert" [class.alert-success]="!error()" [class.alert-danger]="error()">
+      {{ message() }}
+    </div>
+  }
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab-button" [class.active]="activeTab() === 'users'" (click)="setActiveTab('users')">
+      User Management
+    </button>
+    <button class="tab-button" [class.active]="activeTab() === 'leaves'" (click)="setActiveTab('leaves')">
+      Leave Allocation
+    </button>
+    <button class="tab-button" [class.active]="activeTab() === 'holidays'" (click)="setActiveTab('holidays')">
+      Public Holidays
+    </button>
+  </div>
+
+  <!-- User Management Tab -->
+  @if (activeTab() === 'users') {
+    <div class="users-section card">
+      <div class="section-header">
+        <h2>Users</h2>
+        <button class="btn btn-primary" (click)="toggleUserForm()">
+          {{ showUserForm() ? 'Cancel' : '+ Create User' }}
+        </button>
+      </div>
+
+      @if (showUserForm()) {
+        <form [formGroup]="userForm" (ngSubmit)="submitUserForm()" class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" formControlName="firstName" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" formControlName="lastName" class="form-control">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" formControlName="email" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Employee ID</label>
+              <input type="text" formControlName="employeeId" class="form-control">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Role</label>
+              <select formControlName="role" class="form-control">
+                <option value="Employee">Employee</option>
+                <option value="Manager">Manager</option>
+                <option value="Administrator">Administrator</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Manager</label>
+              <select formControlName="managerId" class="form-control">
+                <option value="">No Manager</option>
+                @for (manager of getManagers(); track manager.id) {
+                  <option [value]="manager.id">{{ manager.firstName }} {{ manager.lastName }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" formControlName="password" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-success" [disabled]="userForm.invalid || loading()">
+            {{ loading() ? 'Creating...' : 'Create User' }}
+          </button>
+        </form>
+      }
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users(); track user.id) {
+              <tr>
+                <td>{{ user.employeeId }}</td>
+                <td>{{ user.firstName }} {{ user.lastName }}</td>
+                <td>{{ user.email }}</td>
+                <td><span class="badge" [ngClass]="getRoleBadgeClass(user.role)">{{ user.role }}</span></td>
+                <td><span class="badge" [class.badge-success]="user.isActive" [class.badge-secondary]="!user.isActive">
+                  {{ user.isActive ? 'Active' : 'Inactive' }}
+                </span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- Leave Allocation Tab -->
+  @if (activeTab() === 'leaves') {
+    <div class="leaves-section card">
+      <div class="section-header">
+        <h2>Leave Entitlement Allocation</h2>
+        <button class="btn btn-primary" (click)="toggleLeaveForm()">
+          {{ showLeaveForm() ? 'Cancel' : '+ Allocate Leaves' }}
+        </button>
+      </div>
+
+      @if (showLeaveForm()) {
+        <form [formGroup]="leaveForm" (ngSubmit)="submitLeaveForm()" class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Employee</label>
+              <select formControlName="userId" class="form-control">
+                <option value="">Select Employee</option>
+                @for (user of users(); track user.id) {
+                  <option [value]="user.id">{{ user.firstName }} {{ user.lastName }} ({{ user.employeeId }})</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Year</label>
+              <input type="number" formControlName="year" class="form-control">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Casual Leave</label>
+              <input type="number" formControlName="casualLeaveBalance" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Earned Leave</label>
+              <input type="number" formControlName="earnedLeaveBalance" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Compensatory Off</label>
+              <input type="number" formControlName="compensatoryOffBalance" class="form-control">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success" [disabled]="leaveForm.invalid || loading()">
+            {{ loading() ? 'Allocating...' : 'Allocate Leaves' }}
+          </button>
+        </form>
+      }
+
+      <div class="info-box">
+        <p>💡 Allocate annual leave entitlements to employees. Default: 12 Casual Leave + 15 Earned Leave per year.</p>
+      </div>
+    </div>
+  }
+
+  <!-- Public Holidays Tab -->
+  @if (activeTab() === 'holidays') {
+    <div class="holidays-section card">
+      <div class="section-header">
+        <h2>Public Holidays</h2>
+        <button class="btn btn-primary" (click)="toggleHolidayForm()">
+          {{ showHolidayForm() ? 'Cancel' : '+ Add Holiday' }}
+        </button>
+      </div>
+
+      @if (showHolidayForm()) {
+        <form [formGroup]="holidayForm" (ngSubmit)="submitHolidayForm()" class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Holiday Name</label>
+              <input type="text" formControlName="name" class="form-control" placeholder="e.g., New Year">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" formControlName="date" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description (Optional)</label>
+            <input type="text" formControlName="description" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-success" [disabled]="holidayForm.invalid || loading()">
+            {{ loading() ? 'Adding...' : 'Add Holiday' }}
+          </button>
+        </form>
+      }
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Holiday Name</th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (holiday of holidays(); track holiday.id) {
+              <tr>
+                <td><strong>{{ holiday.name }}</strong></td>
+                <td>{{ holiday.date | date:'mediumDate' }}</td>
+                <td>{{ holiday.description || '-' }}</td>
+                <td>
+                  <button class="btn btn-sm btn-danger" (click)="deleteHoliday(holiday.id!)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
