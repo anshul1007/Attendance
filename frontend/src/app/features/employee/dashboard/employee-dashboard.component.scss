@@ -6,15 +6,23 @@
 
 .dashboard-header {
   margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #8B3A3A 0%, #6B2C2C 100%);
+  border-radius: 8px;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   
   h1 {
-    color: #333;
+    color: white;
     margin-bottom: 10px;
+    font-size: 28px;
+    font-weight: 600;
   }
   
   p {
-    color: #666;
+    color: rgba(255,255,255,0.9);
     font-size: 16px;
+    margin: 0;
   }
 }
 
@@ -30,6 +38,47 @@
     margin-bottom: 20px;
     color: #333;
     font-size: 20px;
+  }
+}
+
+// Collapsible card header
+.card-header-collapsible {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+  transition: background-color 0.2s;
+  
+  h2 {
+    margin: 0;
+    color: #333;
+    font-size: 20px;
+  }
+  
+  .collapse-toggle {
+    background: #8B3A3A;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, transform 0.2s;
+    flex-shrink: 0;
+    
+    &:hover {
+      background: #6B2C2C;
+      transform: scale(1.1);
+    }
   }
 }
 
@@ -218,11 +267,11 @@
   }
   
   &.btn-primary {
-    background: #007bff;
+    background: #8B3A3A;
     color: white;
     
     &:hover:not(:disabled) {
-      background: #0056b3;
+      background: #6B2C2C;
     }
   }
   

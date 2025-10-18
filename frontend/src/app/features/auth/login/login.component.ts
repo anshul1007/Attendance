@@ -28,8 +28,8 @@ import { LoginRequest } from '../../../shared/models/user.model';
     <div class="login-container">
       <mat-card class="login-card">
         <mat-card-header>
-          <mat-card-title>Attendance Management System</mat-card-title>
-          <mat-card-subtitle>Please login to continue</mat-card-subtitle>
+          <mat-card-title>VermillionIndia</mat-card-title>
+          <mat-card-subtitle>Attendance Management System</mat-card-subtitle>
         </mat-card-header>
         
         <mat-card-content>
@@ -96,7 +96,7 @@ import { LoginRequest } from '../../../shared/models/user.model';
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B3A3A 0%, #6B2C2C 100%);
       padding: 20px;
     }
 
@@ -114,10 +114,15 @@ import { LoginRequest } from '../../../shared/models/user.model';
     }
 
     mat-card-title {
-      font-size: 24px;
-      font-weight: 600;
+      font-size: 32px;
+      font-weight: 700;
       text-align: center;
       margin-bottom: 8px;
+      background: linear-gradient(135deg, #8B3A3A 0%, #6B2C2C 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1px;
     }
 
     mat-card-subtitle {

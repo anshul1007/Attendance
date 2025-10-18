@@ -77,7 +77,7 @@ export class LeaveService {
   approveLeave(leaveRequestId: string): Observable<void> {
     return this.http.post<ApiResponse<void>>(`${this.apiUrl}/approve`, { 
       leaveRequestId, 
-      isApproved: true 
+      approved: true 
     })
       .pipe(
         map(response => {
@@ -91,7 +91,7 @@ export class LeaveService {
   rejectLeave(leaveRequestId: string, rejectionReason: string): Observable<void> {
     return this.http.post<ApiResponse<void>>(`${this.apiUrl}/approve`, { 
       leaveRequestId, 
-      isApproved: false,
+      approved: false,
       rejectionReason 
     })
       .pipe(

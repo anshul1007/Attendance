@@ -12,11 +12,13 @@ namespace AttendanceAPI.Controllers
     public class AttendanceController : ControllerBase
     {
         private readonly IAttendanceService _attendanceService;
+        private readonly IAdminService _adminService;
         private readonly ILogger<AttendanceController> _logger;
 
-        public AttendanceController(IAttendanceService attendanceService, ILogger<AttendanceController> logger)
+        public AttendanceController(IAttendanceService attendanceService, IAdminService adminService, ILogger<AttendanceController> logger)
         {
             _attendanceService = attendanceService;
+            _adminService = adminService;
             _logger = logger;
         }
 
@@ -115,6 +117,23 @@ namespace AttendanceAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting team attendance");
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("An error occurred", ex.Message));
+            }
+        }
+
+        [HttpGet("holidays")]
+        public async Task<IActionResult> GetPublicHolidays([FromQuery] int year)
+        {
+            try
+            {
+                if (year == 0) year = DateTime.UtcNow.Year;
+
+                var holidays = await _adminService.GetPublicHolidaysAsync(year);
+                return Ok(ApiResponse<List<PublicHolidayDto>>.SuccessResponse(holidays));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting public holidays");
                 return StatusCode(500, ApiResponse<object>.ErrorResponse("An error occurred", ex.Message));
             }
         }

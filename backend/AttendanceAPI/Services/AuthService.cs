@@ -29,6 +29,7 @@ namespace AttendanceAPI.Services
         public async Task<LoginResponse?> LoginAsync(LoginRequest request)
         {
             var user = await _context.Users
+                .Include(u => u.Department)
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.IsActive);
 
             if (user == null)
@@ -54,14 +55,18 @@ namespace AttendanceAPI.Services
                     LastName = user.LastName,
                     EmployeeId = user.EmployeeId,
                     Role = user.Role.ToString(),
-                    ManagerId = user.ManagerId
+                    ManagerId = user.ManagerId,
+                    DepartmentId = user.DepartmentId,
+                    DepartmentName = user.Department?.Name
                 }
             };
         }
 
         public async Task<UserDto?> GetUserByIdAsync(Guid userId)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users
+                .Include(u => u.Department)
+                .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 return null;
 
@@ -73,7 +78,9 @@ namespace AttendanceAPI.Services
                 LastName = user.LastName,
                 EmployeeId = user.EmployeeId,
                 Role = user.Role.ToString(),
-                ManagerId = user.ManagerId
+                ManagerId = user.ManagerId,
+                DepartmentId = user.DepartmentId,
+                DepartmentName = user.Department?.Name
             };
         }
 

@@ -52,7 +52,7 @@ namespace AttendanceAPI.Controllers
                 // For JWT-based auth, logout is handled client-side by removing the token
                 // This endpoint can be used for logging or additional cleanup if needed
                 _logger.LogInformation("User logged out");
-                return Ok(ApiResponse<object>.SuccessResponse(null, "Logout successful"));
+                return Ok(ApiResponse<object>.SuccessResponse(new { }, "Logout successful"));
             }
             catch (Exception ex)
             {

@@ -28,6 +28,8 @@ namespace AttendanceAPI.Models.DTOs
         public int Role { get; set; } // 1=Employee, 2=Manager, 3=Administrator
 
         public Guid? ManagerId { get; set; }
+
+        public Guid? DepartmentId { get; set; }
     }
 
     public class UpdateUserRequest
@@ -44,6 +46,8 @@ namespace AttendanceAPI.Models.DTOs
         public int? Role { get; set; }
 
         public Guid? ManagerId { get; set; }
+
+        public Guid? DepartmentId { get; set; }
 
         public bool? IsActive { get; set; }
     }

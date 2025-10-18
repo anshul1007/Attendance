@@ -16,6 +16,8 @@ export interface User {
   employeeId: string;
   role: string;
   managerId?: string;
+  departmentId?: string;
+  departmentName?: string;
   isActive: boolean;
 }
 
@@ -24,8 +26,9 @@ export interface CreateUserRequest {
   firstName: string;
   lastName: string;
   employeeId: string;
-  role: string;
+  role: number;
   managerId?: string;
+  departmentId?: string;
   password: string;
 }
 
@@ -33,8 +36,9 @@ export interface UpdateUserRequest {
   email?: string;
   firstName?: string;
   lastName?: string;
-  role?: string;
+  role?: number;
   managerId?: string;
+  departmentId?: string;
   isActive?: boolean;
 }
 

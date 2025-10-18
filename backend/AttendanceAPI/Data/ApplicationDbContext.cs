@@ -16,6 +16,7 @@ namespace AttendanceAPI.Data
         public DbSet<LeaveEntitlement> LeaveEntitlements { get; set; }
         public DbSet<PublicHoliday> PublicHolidays { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Department> Departments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,6 +28,7 @@ namespace AttendanceAPI.Data
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.EmployeeId).IsUnique();
                 entity.HasIndex(e => e.ManagerId);
+                entity.HasIndex(e => e.DepartmentId);
 
                 entity.HasOne(e => e.Manager)
                     .WithMany(e => e.Subordinates)

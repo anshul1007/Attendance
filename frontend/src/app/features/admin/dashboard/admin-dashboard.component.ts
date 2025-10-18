@@ -1,14 +1,15 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AdminService, PublicHoliday } from '../../../core/services/admin.service';
+import { AdminService, PublicHoliday, Department, TeamMember } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { User } from '../../../shared/models/admin.model';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
@@ -18,18 +19,22 @@ export class AdminDashboardComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   currentUser = this.authService.currentUser;
-  activeTab = signal<'users' | 'leaves' | 'holidays'>('users');
+  activeTab = signal<'users' | 'departments' | 'leaves' | 'holidays'>('users');
   users = signal<User[]>([]);
+  departments = signal<Department[]>([]);
   holidays = signal<PublicHoliday[]>([]);
   loading = signal(false);
   message = signal('');
   error = signal(false);
+  editingUserId = signal<string | null>(null);
   
   showUserForm = signal(false);
+  showDepartmentForm = signal(false);
   showLeaveForm = signal(false);
   showHolidayForm = signal(false);
   
   userForm: FormGroup;
+  departmentForm: FormGroup;
   leaveForm: FormGroup;
   holidayForm: FormGroup;
 
@@ -39,9 +44,16 @@ export class AdminDashboardComponent implements OnInit {
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       employeeId: ['', Validators.required],
-      role: ['Employee', Validators.required],
+      role: ['1', Validators.required],
       managerId: [''],
+      departmentId: [''],
       password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+
+    this.departmentForm = this.fb.group({
+      name: ['', Validators.required],
+      description: [''],
+      weeklyOffDays: ['Saturday,Sunday', Validators.required]
     });
 
     this.leaveForm = this.fb.group({
@@ -61,11 +73,13 @@ export class AdminDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.loadUsers();
+    this.loadDepartments();
     this.loadHolidays();
   }
 
-  setActiveTab(tab: 'users' | 'leaves' | 'holidays') {
+  setActiveTab(tab: 'users' | 'departments' | 'leaves' | 'holidays') {
     this.activeTab.set(tab);
+    if (tab === 'departments') this.loadDepartments();
   }
 
   loadUsers() {
@@ -78,6 +92,17 @@ export class AdminDashboardComponent implements OnInit {
       error: (err) => {
         console.error('Error loading users:', err);
         this.loading.set(false);
+      }
+    });
+  }
+
+  loadDepartments() {
+    this.adminService.getAllDepartments().subscribe({
+      next: (departments) => {
+        this.departments.set(departments);
+      },
+      error: (err) => {
+        console.error('Error loading departments:', err);
       }
     });
   }
@@ -96,26 +121,34 @@ export class AdminDashboardComponent implements OnInit {
   toggleUserForm() {
     this.showUserForm.set(!this.showUserForm());
     if (!this.showUserForm()) {
-      this.userForm.reset({ role: 'Employee' });
+      this.cancelUserEdit();
     }
   }
 
   submitUserForm() {
     if (this.userForm.invalid) return;
 
+    const editingId = this.editingUserId();
+    if (editingId) {
+      this.updateUser();
+      return;
+    }
+
     this.loading.set(true);
     const formValue = this.userForm.value;
     
     const request = {
       ...formValue,
-      managerId: formValue.managerId || undefined
+      role: parseInt(formValue.role),
+      managerId: formValue.managerId || undefined,
+      departmentId: formValue.departmentId || undefined
     };
 
     this.adminService.createUser(request).subscribe({
       next: () => {
         this.message.set('User created successfully!');
         this.error.set(false);
-        this.userForm.reset({ role: 'Employee' });
+        this.userForm.reset({ role: '1' });
         this.showUserForm.set(false);
         this.loadUsers();
         this.loading.set(false);
@@ -220,5 +253,111 @@ export class AdminDashboardComponent implements OnInit {
 
   getManagers(): User[] {
     return this.users().filter(u => u.role === 'Manager' || u.role === 'Administrator');
+  }
+
+  // Department methods
+  toggleDepartmentForm() {
+    this.showDepartmentForm.set(!this.showDepartmentForm());
+    if (!this.showDepartmentForm()) {
+      this.departmentForm.reset({ weeklyOffDays: 'Saturday,Sunday' });
+    }
+  }
+
+  submitDepartmentForm() {
+    if (this.departmentForm.invalid) return;
+
+    this.loading.set(true);
+    const request = this.departmentForm.value;
+
+    this.adminService.createDepartment(request).subscribe({
+      next: () => {
+        this.message.set('Department created successfully!');
+        this.error.set(false);
+        this.departmentForm.reset({ weeklyOffDays: 'Saturday,Sunday' });
+        this.showDepartmentForm.set(false);
+        this.loadDepartments();
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.message.set(err.message || 'Failed to create department');
+        this.error.set(true);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  deleteDepartment(departmentId: string) {
+    if (!confirm('Are you sure? This will unassign employees from this department.')) return;
+
+    this.adminService.deleteDepartment(departmentId).subscribe({
+      next: () => {
+        this.message.set('Department deleted successfully');
+        this.error.set(false);
+        this.loadDepartments();
+      },
+      error: (err) => {
+        this.message.set(err.message || 'Failed to delete department');
+        this.error.set(true);
+      }
+    });
+  }
+
+  // User edit methods
+  editUser(user: User) {
+    this.editingUserId.set(user.id);
+    this.userForm.patchValue({
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      employeeId: user.employeeId,
+      role: user.role === 'Employee' ? '1' : user.role === 'Manager' ? '2' : '3',
+      managerId: user.managerId || '',
+      departmentId: user.departmentId || ''
+    });
+    this.userForm.get('password')?.clearValidators();
+    this.userForm.get('password')?.updateValueAndValidity();
+    this.showUserForm.set(true);
+  }
+
+  cancelUserEdit() {
+    this.editingUserId.set(null);
+    this.userForm.reset({ role: '1' });
+    this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
+    this.userForm.get('password')?.updateValueAndValidity();
+    this.showUserForm.set(false);
+  }
+
+  updateUser() {
+    if (this.userForm.invalid) return;
+
+    const userId = this.editingUserId();
+    if (!userId) return;
+
+    this.loading.set(true);
+    const formValue = this.userForm.value;
+    const updateRequest: any = {
+      email: formValue.email,
+      firstName: formValue.firstName,
+      lastName: formValue.lastName,
+      role: parseInt(formValue.role),
+      managerId: formValue.managerId || null,
+      departmentId: formValue.departmentId || null,
+      isActive: true
+    };
+
+    this.adminService.updateUser(userId, updateRequest).subscribe({
+      next: () => {
+        this.message.set('User updated successfully!');
+        this.error.set(false);
+        this.cancelUserEdit();
+        this.loadUsers();
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.message.set(err.message || 'Failed to update user');
+        this.error.set(true);
+        this.loading.set(false);
+      }
+    });
   }
 }

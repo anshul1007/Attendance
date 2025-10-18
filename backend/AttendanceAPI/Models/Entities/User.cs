@@ -32,6 +32,11 @@ namespace AttendanceAPI.Models.Entities
         [ForeignKey(nameof(ManagerId))]
         public User? Manager { get; set; }
 
+        public Guid? DepartmentId { get; set; }
+
+        [ForeignKey(nameof(DepartmentId))]
+        public Department? Department { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

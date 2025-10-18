@@ -217,6 +217,7 @@ namespace AttendanceAPI.Services
                 Id = attendance.Id,
                 UserId = attendance.UserId,
                 UserName = $"{user.FirstName} {user.LastName}",
+                EmployeeId = user.EmployeeId,
                 LoginTime = attendance.LoginTime,
                 LogoutTime = attendance.LogoutTime,
                 Date = attendance.Date,

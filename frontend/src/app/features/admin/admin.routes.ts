@@ -4,5 +4,9 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () => import('./dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent)
+  },
+  {
+    path: 'team',
+    loadComponent: () => import('../manager/dashboard/manager-dashboard.component').then(m => m.ManagerDashboardComponent)
   }
 ];

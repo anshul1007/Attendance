@@ -1,4 +1,4 @@
-# Employee Attendance Management System
+# VermillionIndia - Attendance Management System
 
 A comprehensive attendance and leave management system with role-based access control.
 

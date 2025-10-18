@@ -16,5 +16,7 @@ namespace AttendanceAPI.Models.DTOs
         public string EmployeeId { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public Guid? ManagerId { get; set; }
+        public Guid? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
     }
 }

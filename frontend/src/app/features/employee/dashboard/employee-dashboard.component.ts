@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { AttendanceService } from '../../../core/services/attendance.service';
 import { LeaveService } from '../../../core/services/leave.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { CommonService, PublicHoliday } from '../../../core/services/common.service';
 
 @Component({
   selector: 'app-employee-dashboard',
@@ -16,6 +17,7 @@ export class EmployeeDashboardComponent implements OnInit {
   private attendanceService = inject(AttendanceService);
   private leaveService = inject(LeaveService);
   private authService = inject(AuthService);
+  private commonService = inject(CommonService);
   private fb = inject(FormBuilder);
 
   currentUser = this.authService.currentUser;
@@ -23,12 +25,19 @@ export class EmployeeDashboardComponent implements OnInit {
   leaveBalance = signal<any>(null);
   attendanceHistory = signal<any[]>([]);
   myLeaveRequests = signal<any[]>([]);
+  publicHolidays = signal<PublicHoliday[]>([]);
   loading = signal(false);
   attendanceMessage = signal('');
   attendanceError = signal(false);
   leaveMessage = signal('');
   leaveError = signal(false);
   leaveForm: FormGroup;
+  
+  // Expand/collapse state
+  leaveRequestExpanded = signal(true);
+  attendanceHistoryExpanded = signal(true);
+  myLeaveRequestsExpanded = signal(true);
+  publicHolidaysExpanded = signal(true);
 
   constructor() {
     this.leaveForm = this.fb.group({
@@ -44,6 +53,7 @@ export class EmployeeDashboardComponent implements OnInit {
     this.loadLeaveBalance();
     this.loadAttendanceHistory();
     this.loadMyLeaveRequests();
+    this.loadPublicHolidays();
   }
 
   loadTodayAttendance() {
@@ -173,5 +183,32 @@ export class EmployeeDashboardComponent implements OnInit {
 
   canCancelLeaveRequest(status: string): boolean {
     return status === 'Pending';
+  }
+
+  toggleLeaveRequest() {
+    this.leaveRequestExpanded.set(!this.leaveRequestExpanded());
+  }
+
+  toggleAttendanceHistory() {
+    this.attendanceHistoryExpanded.set(!this.attendanceHistoryExpanded());
+  }
+
+  toggleMyLeaveRequests() {
+    this.myLeaveRequestsExpanded.set(!this.myLeaveRequestsExpanded());
+  }
+
+  togglePublicHolidays() {
+    this.publicHolidaysExpanded.set(!this.publicHolidaysExpanded());
+  }
+
+  loadPublicHolidays() {
+    this.commonService.getPublicHolidays(new Date().getFullYear()).subscribe({
+      next: (holidays) => {
+        this.publicHolidays.set(holidays);
+      },
+      error: (err) => {
+        console.error('Failed to load public holidays:', err);
+      }
+    });
   }
 }

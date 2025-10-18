@@ -11,7 +11,10 @@ import { AuthService } from '../../core/auth/auth.service';
     <nav class="navbar">
       <div class="nav-container">
         <div class="nav-brand">
-          <h1>Attendance System</h1>
+          <div class="logo">
+            <span class="logo-text">Vermillion</span>
+            <span class="logo-subtext">PRECISION DEFINED • SOLUTIONS DELIVERED</span>
+          </div>
         </div>
         
         @if (authService.currentUser) {
@@ -44,7 +47,7 @@ import { AuthService } from '../../core/auth/auth.service';
   `,
   styles: [`
     .navbar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B3A3A 0%, #6B2C2C 100%);
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       position: sticky;
       top: 0;
@@ -58,14 +61,32 @@ import { AuthService } from '../../core/auth/auth.service';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      min-height: 64px;
+      min-height: 70px;
     }
 
-    .nav-brand h1 {
-      color: white;
-      font-size: 24px;
-      font-weight: 700;
-      margin: 0;
+    .nav-brand {
+      .logo {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .logo-text {
+        color: white;
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: 1px;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      .logo-subtext {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
     }
 
     .nav-links {
@@ -108,17 +129,18 @@ import { AuthService } from '../../core/auth/auth.service';
     }
 
     .btn-logout {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
       color: white;
       border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 8px 16px;
+      padding: 8px 20px;
       border-radius: 4px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
       
       &:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
       }
     }
 

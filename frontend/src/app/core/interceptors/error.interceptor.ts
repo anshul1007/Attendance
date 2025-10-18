@@ -15,23 +15,28 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         errorMessage = `Error: ${error.error.message}`;
       } else {
         // Server-side error
-        switch (error.status) {
-          case 401:
-            // Unauthorized - redirect to login
-            router.navigate(['/login']);
-            errorMessage = 'Unauthorized. Please login again.';
-            break;
-          case 403:
-            errorMessage = 'You do not have permission to access this resource.';
-            break;
-          case 404:
-            errorMessage = 'Resource not found.';
-            break;
-          case 500:
-            errorMessage = 'Internal server error. Please try again later.';
-            break;
-          default:
-            errorMessage = error.error?.error || error.message || 'Something went wrong';
+        // First check if it's our API response format with a message
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else {
+          switch (error.status) {
+            case 401:
+              // Unauthorized - redirect to login
+              router.navigate(['/login']);
+              errorMessage = 'Unauthorized. Please login again.';
+              break;
+            case 403:
+              errorMessage = 'You do not have permission to access this resource.';
+              break;
+            case 404:
+              errorMessage = 'Resource not found.';
+              break;
+            case 500:
+              errorMessage = 'Internal server error. Please try again later.';
+              break;
+            default:
+              errorMessage = error.error?.error || error.message || 'Something went wrong';
+          }
         }
       }
 
