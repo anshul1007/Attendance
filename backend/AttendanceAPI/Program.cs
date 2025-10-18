@@ -8,8 +8,56 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add DbContext with PostgreSQL
+var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(defaultConn))
+{
+    throw new InvalidOperationException("DefaultConnection is not configured");
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    // Improved heuristic: detect SQL Server by common SQL Server keywords, otherwise prefer Npgsql
+    var lower = defaultConn.ToLowerInvariant();
+
+    bool looksLikeSqlServer = lower.Contains("initial catalog")
+                            || lower.Contains("data source")
+                            || lower.Contains("server=")
+                            || lower.Contains("tcp:")
+                            || (lower.Contains("database=") && lower.Contains("user id="));
+
+    bool looksLikePostgres = lower.Contains("host=") || lower.Contains("port=") || lower.Contains("postgres");
+
+    // Mask password for logs
+    string maskedConn = defaultConn;
+    try
+    {
+        var pwdIdx = maskedConn.ToLowerInvariant().IndexOf("password=");
+        if (pwdIdx >= 0)
+        {
+            var end = maskedConn.IndexOf(';', pwdIdx);
+            if (end == -1) end = maskedConn.Length;
+            maskedConn = maskedConn.Remove(pwdIdx + "password=".Length, Math.Min(8, end - (pwdIdx + "password=".Length))).Insert(pwdIdx + "password=".Length, "********");
+        }
+    }
+    catch { /* ignore masking errors */ }
+
+    if (looksLikeSqlServer && !looksLikePostgres)
+    {
+        Console.WriteLine($"[Startup] Connection string appears to be SQL Server. Using SqlServer provider. Conn: {maskedConn}");
+        options.UseSqlServer(defaultConn);
+    }
+    else if (looksLikePostgres && !looksLikeSqlServer)
+    {
+        Console.WriteLine($"[Startup] Connection string appears to be Postgres. Using Npgsql provider. Conn: {maskedConn}");
+        options.UseNpgsql(defaultConn);
+    }
+    else
+    {
+        // Mixed/unknown: prefer SqlServer for Azure SQL style or fallback to SqlServer
+        Console.WriteLine($"[Startup] Connection string ambiguous. Preferring SqlServer provider. Conn: {maskedConn}");
+        options.UseSqlServer(defaultConn);
+    }
+});
 
 // Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
