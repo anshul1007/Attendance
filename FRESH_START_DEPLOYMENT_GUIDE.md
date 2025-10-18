@@ -2,6 +2,34 @@
 
 This guide will help you set up VermillionIndia Attendance System from scratch with clean, environment-based naming (prod, dev, staging).
 
+## 🏗️ Architecture Overview
+
+**Environment-Based Resource Naming:**
+- Each environment gets its own **isolated resource group**
+- All resources within an environment share the same suffix
+- Format: `vermillion-{service}-{environment}`
+
+**Example for Production (environment = prod):**
+- Resource Group: `vermillion-attendance-prod-rg` ← Auto-generated
+- SQL Server: `vermillion-sql-prod`
+- Backend API: `vermillion-api-prod`
+- Frontend: `vermillion-web-prod`
+- App Service Plan: `vermillion-attendance-plan-prod`
+
+**Example for Development (environment = dev):**
+- Resource Group: `vermillion-attendance-dev-rg` ← Auto-generated
+- SQL Server: `vermillion-sql-dev`
+- Backend API: `vermillion-api-dev`
+- Frontend: `vermillion-web-dev`
+- App Service Plan: `vermillion-attendance-plan-dev`
+
+**Advantages:**
+- ✅ Complete environment isolation
+- ✅ Easy to delete entire environment (just delete resource group)
+- ✅ No resource name conflicts between environments
+- ✅ Clear identification of resources
+- ✅ Supports unlimited environments (prod, dev, staging, test, etc.)
+
 ---
 
 ## 🧹 Step 1: Clean Up Existing Resources
@@ -9,11 +37,16 @@ This guide will help you set up VermillionIndia Attendance System from scratch w
 ### A. Delete Azure Resources
 
 1. Go to: https://portal.azure.com
-2. Search for: `vermillion-attendance-rg`
-3. Click on the resource group
-4. Click **"Delete resource group"** at the top
-5. Type the resource group name to confirm: `vermillion-attendance-rg`
-6. Click **"Delete"**
+2. Search for resource groups starting with: `vermillion-attendance`
+3. Delete each resource group you find:
+   - `vermillion-attendance-prod-rg` (if exists)
+   - `vermillion-attendance-dev-rg` (if exists)
+   - `vermillion-attendance-rg` (old naming, if exists)
+4. For each resource group:
+   - Click on the resource group
+   - Click **"Delete resource group"** at the top
+   - Type the resource group name to confirm
+   - Click **"Delete"**
 
 ⏱️ Wait 5-10 minutes for complete deletion.
 
@@ -94,17 +127,18 @@ Create a strong password for production SQL Server.
 2. Click **"Setup Azure Infrastructure"**
 3. Click **"Run workflow"**
 4. Select inputs:
-   - **Environment**: `prod`
-   - **Resource Group Name**: `vermillion-attendance-rg`
+   - **Environment**: `prod` (creates vermillion-attendance-prod-rg)
    - **Azure Region**: `westeurope` (or your choice)
 5. Click **"Run workflow"**
+
+**Note:** The resource group name is automatically generated as `vermillion-attendance-{environment}-rg`
 
 ### B. Wait for Completion
 
 ⏱️ Takes 10-15 minutes
 
 The workflow will create:
-- ✅ Resource Group: `vermillion-attendance-rg`
+- ✅ Resource Group: `vermillion-attendance-prod-rg`
 - ✅ SQL Server: `vermillion-sql-prod`
 - ✅ SQL Database: `AttendanceDB`
 - ✅ App Service Plan: `vermillion-attendance-plan-prod`
@@ -119,6 +153,7 @@ At the end of the workflow, you'll see:
 ✅ INFRASTRUCTURE CREATED SUCCESSFULLY!
 
 🌍 Environment: prod
+📦 Resource Group: vermillion-attendance-prod-rg
 📱 Frontend URL: https://vermillion-web-prod.azurestaticapps.net
 🔧 Backend URL: https://vermillion-api-prod.azurewebsites.net
 💾 SQL Server: vermillion-sql-prod.database.windows.net
@@ -139,7 +174,7 @@ Go to: https://portal.azure.com → Click (>_) icon
 ```bash
 az webapp deployment list-publishing-profiles \
   --name vermillion-api-prod \
-  --resource-group vermillion-attendance-rg \
+  --resource-group vermillion-attendance-prod-rg \
   --xml
 ```
 
@@ -150,7 +185,7 @@ az webapp deployment list-publishing-profiles \
 ```bash
 az staticwebapp secrets list \
   --name vermillion-web-prod \
-  --resource-group vermillion-attendance-rg \
+  --resource-group vermillion-attendance-prod-rg \
   --query "properties.apiKey" \
   -o tsv
 ```
@@ -254,6 +289,7 @@ https://vermillion-web-prod.azurestaticapps.net
 
 | Resource Type | Production Name | Future Dev Name | Future Staging Name |
 |---------------|----------------|-----------------|---------------------|
+| **Resource Group** | `vermillion-attendance-prod-rg` | `vermillion-attendance-dev-rg` | `vermillion-attendance-staging-rg` |
 | SQL Server | `vermillion-sql-prod` | `vermillion-sql-dev` | `vermillion-sql-staging` |
 | Backend API | `vermillion-api-prod` | `vermillion-api-dev` | `vermillion-api-staging` |
 | Frontend | `vermillion-web-prod` | `vermillion-web-dev` | `vermillion-web-staging` |
@@ -262,6 +298,7 @@ https://vermillion-web-prod.azurestaticapps.net
 **Benefits:**
 - ✅ Clean, predictable names
 - ✅ Easy to identify environment
+- ✅ Separate resource groups per environment (easy to manage/delete)
 - ✅ Can run multiple environments in parallel
 - ✅ No timestamp confusion
 - ✅ Simple to reference in scripts
