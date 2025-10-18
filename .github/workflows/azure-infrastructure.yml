@@ -3,6 +3,15 @@ name: Setup Azure Infrastructure
 on:
   workflow_dispatch:  # Manual trigger only
     inputs:
+      environment:
+        description: 'Environment (prod, dev, staging)'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
+          - staging
       resource_group:
         description: 'Resource Group Name'
         required: true
@@ -61,9 +70,10 @@ jobs:
 
     - name: 💾 Create Azure SQL Server
       run: |
-        SQL_SERVER_NAME="vermillion-sql-$(date +%s)"
+        ENV="${{ github.event.inputs.environment }}"
+        SQL_SERVER_NAME="vermillion-sql-${ENV}"
         SQL_ADMIN_USER="sqladmin"
-        SQL_ADMIN_PASSWORD="${{ secrets.SQL_ADMIN_PASSWORD }}"
+        SQL_ADMIN_PASSWORD="${{ secrets.SQL_ADMIN_PASSWORD_PROD }}"
         LOCATION="${{ github.event.inputs.location }}"
         SQL_CREATED=false
         
@@ -84,7 +94,6 @@ jobs:
           # Try alternative European regions
           for ALT_LOCATION in "northeurope" "francecentral" "uksouth" "germanywestcentral" "swedencentral" "eastus" "westus2"; do
             echo "Trying $ALT_LOCATION..."
-            SQL_SERVER_NAME="vermillion-sql-$(date +%s)"  # Generate new name for each attempt
             
             if az sql server create \
               --name $SQL_SERVER_NAME \
@@ -112,6 +121,7 @@ jobs:
         echo "SQL_SERVER_NAME=$SQL_SERVER_NAME" >> $GITHUB_ENV
         echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
         echo "SQL_ADMIN_USER=$SQL_ADMIN_USER" >> $GITHUB_ENV
+        echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
         echo "✅ SQL Server successfully created: $SQL_SERVER_NAME in region: $LOCATION"
 
     - name: 🔥 Configure SQL Server Firewall
@@ -140,23 +150,28 @@ jobs:
 
     - name: 🌐 Create App Service Plan
       run: |
+        ENV="${{ github.event.inputs.environment }}"
+        APP_PLAN_NAME="vermillion-attendance-plan-${ENV}"
+        
         az appservice plan create \
-          --name vermillion-attendance-plan \
+          --name $APP_PLAN_NAME \
           --resource-group ${{ github.event.inputs.resource_group }} \
           --location ${{ github.event.inputs.location }} \
           --sku B1 \
           --is-linux
         
-        echo "✅ App Service Plan created"
+        echo "APP_PLAN_NAME=$APP_PLAN_NAME" >> $GITHUB_ENV
+        echo "✅ App Service Plan created: $APP_PLAN_NAME"
 
     - name: 🚀 Create Web App (Backend)
       run: |
-        WEBAPP_NAME="vermillion-api-$(date +%s)"
+        ENV="${{ github.event.inputs.environment }}"
+        WEBAPP_NAME="vermillion-api-${ENV}"
         
         az webapp create \
           --name $WEBAPP_NAME \
           --resource-group ${{ github.event.inputs.resource_group }} \
-          --plan vermillion-attendance-plan \
+          --plan ${{ env.APP_PLAN_NAME }} \
           --runtime "DOTNETCORE:8.0"
         
         echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
@@ -164,7 +179,7 @@ jobs:
 
     - name: 🔗 Configure Connection String
       run: |
-        CONNECTION_STRING="Server=tcp:${{ env.SQL_SERVER_NAME }}.database.windows.net,1433;Initial Catalog=AttendanceDB;User ID=sqladmin;Password=${{ secrets.SQL_ADMIN_PASSWORD }};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+        CONNECTION_STRING="Server=tcp:${{ env.SQL_SERVER_NAME }}.database.windows.net,1433;Initial Catalog=AttendanceDB;User ID=sqladmin;Password=${{ secrets.SQL_ADMIN_PASSWORD_PROD }};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
         
         az webapp config connection-string set \
           --name ${{ env.WEBAPP_NAME }} \
@@ -187,7 +202,8 @@ jobs:
 
     - name: 📱 Create Static Web App (Frontend)
       run: |
-        STATIC_APP_NAME="vermillion-web-$(date +%s)"
+        ENV="${{ github.event.inputs.environment }}"
+        STATIC_APP_NAME="vermillion-web-${ENV}"
         
         az staticwebapp create \
           --name $STATIC_APP_NAME \
@@ -210,6 +226,7 @@ jobs:
         echo "✅ INFRASTRUCTURE CREATED SUCCESSFULLY!"
         echo "=========================================="
         echo ""
+        echo "🌍 Environment: ${{ github.event.inputs.environment }}"
         echo "📱 Frontend URL: https://$STATIC_APP_URL"
         echo "🔧 Backend URL: $BACKEND_URL"
         echo "💾 SQL Server: ${{ env.SQL_SERVER_NAME }}.database.windows.net"
@@ -223,16 +240,17 @@ jobs:
         echo "1. Add these secrets to your GitHub repository:"
         echo "   - Go to: Settings → Secrets and variables → Actions"
         echo ""
-        echo "2. Add AZURE_WEBAPP_PUBLISH_PROFILE:"
+        echo "2. Add AZURE_WEBAPP_PUBLISH_PROFILE_PROD:"
         echo "   Run: az webapp deployment list-publishing-profiles --name ${{ env.WEBAPP_NAME }} --resource-group ${{ github.event.inputs.resource_group }} --xml"
         echo ""
-        echo "3. Add AZURE_STATIC_WEB_APPS_API_TOKEN:"
-        echo "   Run: az staticwebapp secrets list --name ${{ env.STATIC_APP_NAME }} --resource-group ${{ github.event.inputs.resource_group }}"
+        echo "3. Add AZURE_STATIC_WEB_APPS_API_TOKEN_PROD:"
+        echo "   Run: az staticwebapp secrets list --name ${{ env.STATIC_APP_NAME }} --resource-group ${{ github.event.inputs.resource_group }} --query 'properties.apiKey' -o tsv"
         echo ""
         echo "4. Update frontend/src/environments/environment.prod.ts:"
         echo "   apiUrl: '$BACKEND_URL/api'"
         echo ""
-        echo "5. Push code to trigger automatic deployment!"
+        echo "5. Run 'Deploy Backend to Azure' workflow"
+        echo "6. Run 'Deploy Frontend to Azure' workflow"
         echo "=========================================="
         echo ""
         echo "💰 Monthly Cost: ~$18 USD"
