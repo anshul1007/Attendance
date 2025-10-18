@@ -13,7 +13,7 @@ on:
           - dev
           - staging
       location:
-        description: 'Azure Region'
+        description: 'Primary Azure Region (SQL Server will auto-failover if needed, Static Web App always uses westeurope)'
         required: true
         default: 'westeurope'
         type: choice
@@ -23,8 +23,6 @@ on:
           - germanywestcentral
           - francecentral
           - uksouth
-          - eastus
-          - westus2
 
 jobs:
   create-infrastructure:
@@ -327,6 +325,13 @@ jobs:
         ENV="${{ github.event.inputs.environment }}"
         STATIC_APP_NAME="vermillion-web-${ENV}"
         
+        # Static Web Apps only support specific regions: westus2, centralus, eastus2, westeurope, eastasia
+        # Use westeurope as default for European deployments
+        STATIC_WEB_APP_LOCATION="westeurope"
+        
+        echo "Note: Static Web App will be created in $STATIC_WEB_APP_LOCATION (limited region support)"
+        echo ""
+        
         # Check if Static Web App already exists
         if az staticwebapp show --name $STATIC_APP_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
           echo "✅ Static Web App already exists: $STATIC_APP_NAME"
@@ -335,9 +340,9 @@ jobs:
           az staticwebapp create \
             --name $STATIC_APP_NAME \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --location ${{ github.event.inputs.location }} \
+            --location $STATIC_WEB_APP_LOCATION \
             --sku Free
-          echo "✅ Static Web App created: $STATIC_APP_NAME"
+          echo "✅ Static Web App created: $STATIC_APP_NAME in $STATIC_WEB_APP_LOCATION"
         fi
         
         echo "STATIC_APP_NAME=$STATIC_APP_NAME" >> $GITHUB_ENV
