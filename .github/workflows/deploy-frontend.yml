@@ -50,7 +50,8 @@ jobs:
         cache-dependency-path: frontend/package.json
 
     - name: 📦 Install dependencies
-      run: npm ci
+      # package-lock.json is not committed; use npm install in CI so dependencies install correctly
+      run: npm install --no-audit --no-fund
       working-directory: frontend
 
     - name: 🏗️ Build Angular app
