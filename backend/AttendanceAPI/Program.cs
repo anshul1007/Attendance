@@ -39,27 +39,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // Allow localhost for development and any HTTPS subdomain under azurestaticapps.net
-        policy.SetIsOriginAllowed(origin =>
-        {
-            if (string.IsNullOrEmpty(origin)) return false;
-            try
-            {
-                var uri = new Uri(origin);
-                // Allow http://localhost:4200 for local dev
-                if (uri.Scheme == Uri.UriSchemeHttp && uri.Host == "localhost") return true;
-                // Allow any https://*.azurestaticapps.net
-                if (uri.Scheme == Uri.UriSchemeHttps && uri.Host.EndsWith(".azurestaticapps.net")) return true;
-            }
-            catch
-            {
-                return false;
-            }
-            return false;
-        })
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
