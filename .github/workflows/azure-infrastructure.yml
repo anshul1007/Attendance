@@ -64,16 +64,40 @@ jobs:
         SQL_SERVER_NAME="vermillion-sql-$(date +%s)"
         SQL_ADMIN_USER="sqladmin"
         SQL_ADMIN_PASSWORD="${{ secrets.SQL_ADMIN_PASSWORD }}"
+        LOCATION="${{ github.event.inputs.location }}"
         
-        az sql server create \
+        echo "Attempting to create SQL Server in region: $LOCATION"
+        
+        # Try primary location first
+        if az sql server create \
           --name $SQL_SERVER_NAME \
           --resource-group ${{ github.event.inputs.resource_group }} \
-          --location ${{ github.event.inputs.location }} \
+          --location $LOCATION \
           --admin-user $SQL_ADMIN_USER \
-          --admin-password $SQL_ADMIN_PASSWORD
+          --admin-password $SQL_ADMIN_PASSWORD 2>/dev/null; then
+          echo "✅ SQL Server created in $LOCATION: $SQL_SERVER_NAME"
+        else
+          echo "⚠️ Failed to create SQL Server in $LOCATION, trying alternative regions..."
+          
+          # Try alternative European regions
+          for ALT_LOCATION in "northeurope" "francecentral" "uksouth" "germanywestcentral" "swedencentral"; do
+            echo "Trying $ALT_LOCATION..."
+            if az sql server create \
+              --name $SQL_SERVER_NAME \
+              --resource-group ${{ github.event.inputs.resource_group }} \
+              --location $ALT_LOCATION \
+              --admin-user $SQL_ADMIN_USER \
+              --admin-password $SQL_ADMIN_PASSWORD 2>/dev/null; then
+              echo "✅ SQL Server created in $ALT_LOCATION: $SQL_SERVER_NAME"
+              LOCATION=$ALT_LOCATION
+              break
+            fi
+          done
+        fi
         
         echo "SQL_SERVER_NAME=$SQL_SERVER_NAME" >> $GITHUB_ENV
-        echo "✅ SQL Server created: $SQL_SERVER_NAME"
+        echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
+        echo "✅ SQL Server created: $SQL_SERVER_NAME in region: $LOCATION"
 
     - name: 🔥 Configure SQL Server Firewall
       run: |
@@ -174,6 +198,8 @@ jobs:
         echo "📱 Frontend URL: https://$STATIC_APP_URL"
         echo "🔧 Backend URL: $BACKEND_URL"
         echo "💾 SQL Server: ${{ env.SQL_SERVER_NAME }}.database.windows.net"
+        echo "🌍 SQL Location: ${{ env.SQL_LOCATION }}"
+        echo "🌍 Primary Location: ${{ github.event.inputs.location }}"
         echo ""
         echo "=========================================="
         echo "📋 NEXT STEPS:"
