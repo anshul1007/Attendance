@@ -66,12 +66,48 @@ jobs:
       run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
       working-directory: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
-    - name: 🚀 Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
+    - name: � Azure Login
+      uses: azure/login@v1
       with:
-        app-name: ${{ steps.env.outputs.webapp_name }}
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
-        package: ${{env.DOTNET_ROOT}}/myapp
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 🗜️ Create deployment zip
+      run: |
+        set -e
+        ENV="${{ steps.env.outputs.environment }}"
+        APP_PATH="${{ env.DOTNET_ROOT }}/myapp"
+        ZIP_PATH="$PWD/myapp.zip"
+
+        echo "Preparing zip from: $APP_PATH"
+        if [ ! -d "$APP_PATH" ]; then
+          echo "❌ Publish output not found at $APP_PATH"
+          ls -la $APP_PATH || true
+          exit 1
+        fi
+
+        # Ensure zip is available
+        if ! command -v zip >/dev/null 2>&1; then
+          echo "zip not found, installing..."
+          sudo apt-get update -y
+          sudo apt-get install -y zip
+        fi
+
+        # Create zip
+        (cd "$APP_PATH" && zip -r "$ZIP_PATH" .)
+        echo "ZIP created: $ZIP_PATH"
+        echo "ZIP_PATH=$ZIP_PATH" >> $GITHUB_ENV
+
+    - name: 🚀 Deploy (az webapp deploy)
+      run: |
+        set -e
+        ENV="${{ steps.env.outputs.environment }}"
+        RG="vermillion-attendance-${ENV}-rg"
+        WEBAPP="${{ steps.env.outputs.webapp_name }}"
+        ZIP_PATH="$PWD/myapp.zip"
+
+        echo "Deploying $ZIP_PATH to $WEBAPP in resource group $RG"
+        az webapp deploy --resource-group "$RG" --name "$WEBAPP" --src-path "$ZIP_PATH"
+
 
     - name: ✅ Deployment Complete
       run: |
