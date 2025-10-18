@@ -60,7 +60,28 @@ jobs:
       env:
         NODE_OPTIONS: "--max_old_space_size=4096"
 
-    - name: 🔒 Validate Static Web Apps token
+    - name: 🔍 Verify build output
+      run: |
+        echo "Checking build output location..."
+        if [ -d "frontend/dist/frontend/browser" ]; then
+          echo "✅ frontend/dist/frontend/browser exists"
+          echo "Contents:"
+          ls -la frontend/dist/frontend/browser
+          if [ -f "frontend/dist/frontend/browser/index.html" ]; then
+            echo "✅ index.html found"
+          else
+            echo "❌ index.html NOT found in frontend/dist/frontend/browser"
+            exit 1
+          fi
+        else
+          echo "❌ frontend/dist/frontend/browser directory does NOT exist"
+          echo "Searching for dist folder..."
+          find frontend -type d -name "dist" 2>/dev/null || true
+          find frontend -type f -name "index.html" 2>/dev/null || true
+          exit 1
+        fi
+
+    - name: �🔒 Validate Static Web Apps token
       run: |
         if [ -z "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROD }}" ]; then
           echo "❌ AZURE_STATIC_WEB_APPS_API_TOKEN_PROD secret is missing or empty."
@@ -74,9 +95,9 @@ jobs:
         azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROD }}
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         action: "upload"
-        # We set skip_app_build: true and point app_location to the built artifact folder
-        # The action will upload the contents of frontend/dist/browser which contains index.html
-        app_location: "frontend/dist/browser"
+        # Angular build outputs to dist/<project-name>/browser (project name is 'frontend')
+        # The action will upload the contents of frontend/dist/frontend/browser which contains index.html
+        app_location: "frontend/dist/frontend/browser"
         skip_app_build: true
 
     - name: ✅ Deployment Complete
