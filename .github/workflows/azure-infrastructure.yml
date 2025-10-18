@@ -12,10 +12,6 @@ on:
           - prod
           - dev
           - staging
-      resource_group:
-        description: 'Resource Group Name'
-        required: true
-        default: 'vermillion-attendance-rg'
       location:
         description: 'Azure Region'
         required: true
@@ -61,12 +57,18 @@ jobs:
         
         echo "✅ All resource providers registered successfully"
 
-    - name: �📋 Create Resource Group
+    - name:  Create Resource Group
       run: |
+        ENV="${{ github.event.inputs.environment }}"
+        RESOURCE_GROUP="vermillion-attendance-${ENV}-rg"
+        
+        echo "Creating Resource Group: $RESOURCE_GROUP"
         az group create \
-          --name ${{ github.event.inputs.resource_group }} \
+          --name $RESOURCE_GROUP \
           --location ${{ github.event.inputs.location }}
-        echo "✅ Resource Group created"
+        
+        echo "RESOURCE_GROUP=$RESOURCE_GROUP" >> $GITHUB_ENV
+        echo "✅ Resource Group created: $RESOURCE_GROUP"
 
     - name: 💾 Create Azure SQL Server
       run: |
@@ -82,7 +84,7 @@ jobs:
         # Try primary location first
         if az sql server create \
           --name $SQL_SERVER_NAME \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --location $LOCATION \
           --admin-user $SQL_ADMIN_USER \
           --admin-password $SQL_ADMIN_PASSWORD; then
@@ -97,7 +99,7 @@ jobs:
             
             if az sql server create \
               --name $SQL_SERVER_NAME \
-              --resource-group ${{ github.event.inputs.resource_group }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
               --location $ALT_LOCATION \
               --admin-user $SQL_ADMIN_USER \
               --admin-password $SQL_ADMIN_PASSWORD; then
@@ -128,7 +130,7 @@ jobs:
       run: |
         # Allow Azure services
         az sql server firewall-rule create \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --server ${{ env.SQL_SERVER_NAME }} \
           --name AllowAzureServices \
           --start-ip-address 0.0.0.0 \
@@ -139,7 +141,7 @@ jobs:
     - name: 💿 Create SQL Database
       run: |
         az sql db create \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --server ${{ env.SQL_SERVER_NAME }} \
           --name AttendanceDB \
           --service-objective Basic \
@@ -155,7 +157,7 @@ jobs:
         
         az appservice plan create \
           --name $APP_PLAN_NAME \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --location ${{ github.event.inputs.location }} \
           --sku B1 \
           --is-linux
@@ -170,7 +172,7 @@ jobs:
         
         az webapp create \
           --name $WEBAPP_NAME \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --plan ${{ env.APP_PLAN_NAME }} \
           --runtime "DOTNETCORE:8.0"
         
@@ -183,7 +185,7 @@ jobs:
         
         az webapp config connection-string set \
           --name ${{ env.WEBAPP_NAME }} \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --connection-string-type SQLAzure \
           --settings DefaultConnection="$CONNECTION_STRING"
         
@@ -193,7 +195,7 @@ jobs:
       run: |
         az webapp config appsettings set \
           --name ${{ env.WEBAPP_NAME }} \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --settings \
             ASPNETCORE_ENVIRONMENT="Production" \
             WEBSITE_RUN_FROM_PACKAGE="1"
@@ -207,7 +209,7 @@ jobs:
         
         az staticwebapp create \
           --name $STATIC_APP_NAME \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --location ${{ github.event.inputs.location }} \
           --sku Free
         
@@ -219,7 +221,7 @@ jobs:
         BACKEND_URL="https://${{ env.WEBAPP_NAME }}.azurewebsites.net"
         STATIC_APP_URL=$(az staticwebapp show \
           --name ${{ env.STATIC_APP_NAME }} \
-          --resource-group ${{ github.event.inputs.resource_group }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --query "defaultHostname" -o tsv)
         
         echo "=========================================="
@@ -227,7 +229,8 @@ jobs:
         echo "=========================================="
         echo ""
         echo "🌍 Environment: ${{ github.event.inputs.environment }}"
-        echo "📱 Frontend URL: https://$STATIC_APP_URL"
+        echo "� Resource Group: ${{ env.RESOURCE_GROUP }}"
+        echo "�📱 Frontend URL: https://$STATIC_APP_URL"
         echo "🔧 Backend URL: $BACKEND_URL"
         echo "💾 SQL Server: ${{ env.SQL_SERVER_NAME }}.database.windows.net"
         echo "🌍 SQL Location: ${{ env.SQL_LOCATION }}"
@@ -241,10 +244,10 @@ jobs:
         echo "   - Go to: Settings → Secrets and variables → Actions"
         echo ""
         echo "2. Add AZURE_WEBAPP_PUBLISH_PROFILE_PROD:"
-        echo "   Run: az webapp deployment list-publishing-profiles --name ${{ env.WEBAPP_NAME }} --resource-group ${{ github.event.inputs.resource_group }} --xml"
+        echo "   Run: az webapp deployment list-publishing-profiles --name ${{ env.WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --xml"
         echo ""
         echo "3. Add AZURE_STATIC_WEB_APPS_API_TOKEN_PROD:"
-        echo "   Run: az staticwebapp secrets list --name ${{ env.STATIC_APP_NAME }} --resource-group ${{ github.event.inputs.resource_group }} --query 'properties.apiKey' -o tsv"
+        echo "   Run: az staticwebapp secrets list --name ${{ env.STATIC_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query 'properties.apiKey' -o tsv"
         echo ""
         echo "4. Update frontend/src/environments/environment.prod.ts:"
         echo "   apiUrl: '$BACKEND_URL/api'"
