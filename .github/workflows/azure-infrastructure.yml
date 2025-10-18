@@ -34,7 +34,25 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: 📋 Create Resource Group
+    - name: � Register Azure Resource Providers
+      run: |
+        echo "Registering required Azure resource providers..."
+        
+        # Register all required providers
+        az provider register --namespace Microsoft.Sql --wait
+        az provider register --namespace Microsoft.Web --wait
+        az provider register --namespace Microsoft.Storage --wait
+        az provider register --namespace Microsoft.Insights --wait
+        
+        # Verify registration status
+        echo "✅ Microsoft.Sql: $(az provider show --namespace Microsoft.Sql --query "registrationState" -o tsv)"
+        echo "✅ Microsoft.Web: $(az provider show --namespace Microsoft.Web --query "registrationState" -o tsv)"
+        echo "✅ Microsoft.Storage: $(az provider show --namespace Microsoft.Storage --query "registrationState" -o tsv)"
+        echo "✅ Microsoft.Insights: $(az provider show --namespace Microsoft.Insights --query "registrationState" -o tsv)"
+        
+        echo "✅ All resource providers registered successfully"
+
+    - name: �📋 Create Resource Group
       run: |
         az group create \
           --name ${{ github.event.inputs.resource_group }} \
