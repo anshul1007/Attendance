@@ -65,8 +65,9 @@ jobs:
         SQL_ADMIN_USER="sqladmin"
         SQL_ADMIN_PASSWORD="${{ secrets.SQL_ADMIN_PASSWORD }}"
         LOCATION="${{ github.event.inputs.location }}"
+        SQL_CREATED=false
         
-        echo "Attempting to create SQL Server in region: $LOCATION"
+        echo "Attempting to create SQL Server: $SQL_SERVER_NAME in region: $LOCATION"
         
         # Try primary location first
         if az sql server create \
@@ -74,30 +75,44 @@ jobs:
           --resource-group ${{ github.event.inputs.resource_group }} \
           --location $LOCATION \
           --admin-user $SQL_ADMIN_USER \
-          --admin-password $SQL_ADMIN_PASSWORD 2>/dev/null; then
+          --admin-password $SQL_ADMIN_PASSWORD; then
           echo "✅ SQL Server created in $LOCATION: $SQL_SERVER_NAME"
+          SQL_CREATED=true
         else
           echo "⚠️ Failed to create SQL Server in $LOCATION, trying alternative regions..."
           
           # Try alternative European regions
-          for ALT_LOCATION in "northeurope" "francecentral" "uksouth" "germanywestcentral" "swedencentral"; do
+          for ALT_LOCATION in "northeurope" "francecentral" "uksouth" "germanywestcentral" "swedencentral" "eastus" "westus2"; do
             echo "Trying $ALT_LOCATION..."
+            SQL_SERVER_NAME="vermillion-sql-$(date +%s)"  # Generate new name for each attempt
+            
             if az sql server create \
               --name $SQL_SERVER_NAME \
               --resource-group ${{ github.event.inputs.resource_group }} \
               --location $ALT_LOCATION \
               --admin-user $SQL_ADMIN_USER \
-              --admin-password $SQL_ADMIN_PASSWORD 2>/dev/null; then
+              --admin-password $SQL_ADMIN_PASSWORD; then
               echo "✅ SQL Server created in $ALT_LOCATION: $SQL_SERVER_NAME"
               LOCATION=$ALT_LOCATION
+              SQL_CREATED=true
               break
+            else
+              echo "❌ Failed in $ALT_LOCATION, trying next region..."
             fi
           done
         fi
         
+        # Verify SQL Server was created
+        if [ "$SQL_CREATED" = false ]; then
+          echo "❌ ERROR: Failed to create SQL Server in all attempted regions!"
+          echo "Please try again later or contact Azure support."
+          exit 1
+        fi
+        
         echo "SQL_SERVER_NAME=$SQL_SERVER_NAME" >> $GITHUB_ENV
         echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
-        echo "✅ SQL Server created: $SQL_SERVER_NAME in region: $LOCATION"
+        echo "SQL_ADMIN_USER=$SQL_ADMIN_USER" >> $GITHUB_ENV
+        echo "✅ SQL Server successfully created: $SQL_SERVER_NAME in region: $LOCATION"
 
     - name: 🔥 Configure SQL Server Firewall
       run: |
