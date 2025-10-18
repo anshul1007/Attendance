@@ -86,13 +86,13 @@ jobs:
         echo "Checking if SQL Server exists in resource group: ${{ env.RESOURCE_GROUP }}..."
         
         set +e
-        SERVER_CHECK=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null)
+        SERVER_CHECK=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} --query "name" -o tsv 2>/dev/null)
         CHECK_RESULT=$?
         set -e
         
-        if [ $CHECK_RESULT -eq 0 ]; then
+        if [ $CHECK_RESULT -eq 0 ] && [ "$SERVER_CHECK" = "$SQL_SERVER_NAME" ]; then
           echo "✅ SQL Server already exists in this resource group: $SQL_SERVER_NAME"
-          EXISTING_LOCATION=$(echo "$SERVER_CHECK" | jq -r '.location')
+          EXISTING_LOCATION=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} --query "location" -o tsv)
           echo "   Location: $EXISTING_LOCATION"
           echo "   ⏭️  Skipping SQL Server creation"
           LOCATION=$EXISTING_LOCATION
@@ -150,10 +150,11 @@ jobs:
             echo "Error details:"
             echo "$CREATE_OUTPUT"
             echo ""
-            echo "Trying alternative regions..."
+            echo "Trying alternative European regions (skipping westeurope due to capacity issues)..."
             
             SUCCESS=false
-            for ALT_LOCATION in northeurope francecentral uksouth germanywestcentral swedencentral eastus westus2; do
+            # Skip westeurope, start with northeurope and other European regions
+            for ALT_LOCATION in northeurope uksouth ukwest francecentral francesouth germanywestcentral germanynorth swedencentral norwayeast switzerlandnorth switzerlandwest polandcentral italynorth spaincentral; do
               echo ""
               echo "Trying region: $ALT_LOCATION"
               
