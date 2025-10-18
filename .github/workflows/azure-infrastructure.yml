@@ -157,7 +157,7 @@ jobs:
           --name $WEBAPP_NAME \
           --resource-group ${{ github.event.inputs.resource_group }} \
           --plan vermillion-attendance-plan \
-          --runtime "DOTNET:8.0"
+          --runtime "DOTNETCORE:8.0"
         
         echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
         echo "✅ Web App created: $WEBAPP_NAME"
