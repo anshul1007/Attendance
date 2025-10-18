@@ -110,6 +110,7 @@ jobs:
           echo "Admin user: $SQL_ADMIN_USER"
           echo ""
           
+          set +e  # Temporarily disable exit on error
           CREATE_OUTPUT=$(az sql server create \
             --name $SQL_SERVER_NAME \
             --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -118,6 +119,7 @@ jobs:
             --admin-password "$SQL_ADMIN_PASSWORD" 2>&1)
           
           CREATE_RESULT=$?
+          set -e  # Re-enable exit on error
           
           if [ $CREATE_RESULT -eq 0 ]; then
             echo "✅ SQL Server created successfully in $LOCATION"
@@ -133,6 +135,7 @@ jobs:
               echo ""
               echo "Trying region: $ALT_LOCATION"
               
+              set +e  # Disable exit on error for this command
               ALT_OUTPUT=$(az sql server create \
                 --name $SQL_SERVER_NAME \
                 --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -141,6 +144,7 @@ jobs:
                 --admin-password "$SQL_ADMIN_PASSWORD" 2>&1)
               
               ALT_RESULT=$?
+              set -e  # Re-enable exit on error
               
               if [ $ALT_RESULT -eq 0 ]; then
                 echo "✅ SQL Server created successfully in $ALT_LOCATION"
