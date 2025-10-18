@@ -81,14 +81,36 @@ jobs:
         
         echo "Checking if SQL Server already exists: $SQL_SERVER_NAME"
         
-        # Check if SQL server already exists
+        # Check if SQL server already exists in current resource group
         if az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
-          echo "✅ SQL Server already exists: $SQL_SERVER_NAME"
+          echo "✅ SQL Server already exists in this resource group: $SQL_SERVER_NAME"
           EXISTING_LOCATION=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} --query "location" -o tsv)
           echo "📍 Using existing SQL Server in location: $EXISTING_LOCATION"
           LOCATION=$EXISTING_LOCATION
           SQL_CREATED=true
         else
+          # Check if SQL server exists globally (in another resource group)
+          EXISTING_SERVER=$(az sql server list --query "[?name=='$SQL_SERVER_NAME'].{name:name,resourceGroup:resourceGroup,location:location}" -o json 2>/dev/null)
+          
+          if [ "$EXISTING_SERVER" != "[]" ] && [ ! -z "$EXISTING_SERVER" ]; then
+            EXISTING_RG=$(echo $EXISTING_SERVER | jq -r '.[0].resourceGroup')
+            EXISTING_LOC=$(echo $EXISTING_SERVER | jq -r '.[0].location')
+            echo "⚠️  WARNING: SQL Server '$SQL_SERVER_NAME' already exists in resource group: $EXISTING_RG"
+            echo "📍 Location: $EXISTING_LOC"
+            echo ""
+            echo "❌ ERROR: Cannot create SQL Server with the same name in a different resource group!"
+            echo ""
+            echo "🔧 SOLUTION OPTIONS:"
+            echo "1. Delete the existing SQL Server from resource group: $EXISTING_RG"
+            echo "   Run: az sql server delete --name $SQL_SERVER_NAME --resource-group $EXISTING_RG --yes"
+            echo ""
+            echo "2. Or delete the old resource group entirely if it's no longer needed:"
+            echo "   Run: az group delete --name $EXISTING_RG --yes"
+            echo ""
+            echo "3. Or change the environment name to use a different SQL server name"
+            exit 1
+          fi
+          
           echo "Creating new SQL Server: $SQL_SERVER_NAME in region: $LOCATION"
           
           # Try primary location first
@@ -97,7 +119,7 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --location $LOCATION \
             --admin-user $SQL_ADMIN_USER \
-            --admin-password $SQL_ADMIN_PASSWORD; then
+            --admin-password $SQL_ADMIN_PASSWORD 2>&1; then
             echo "✅ SQL Server created in $LOCATION: $SQL_SERVER_NAME"
             SQL_CREATED=true
           else
@@ -112,7 +134,7 @@ jobs:
                 --resource-group ${{ env.RESOURCE_GROUP }} \
                 --location $ALT_LOCATION \
                 --admin-user $SQL_ADMIN_USER \
-                --admin-password $SQL_ADMIN_PASSWORD; then
+                --admin-password $SQL_ADMIN_PASSWORD 2>&1; then
                 echo "✅ SQL Server created in $ALT_LOCATION: $SQL_SERVER_NAME"
                 LOCATION=$ALT_LOCATION
                 SQL_CREATED=true
@@ -124,10 +146,20 @@ jobs:
           fi
         fi
         
-        # Verify SQL Server exists
+        # Verify SQL Server exists or was created
         if [ "$SQL_CREATED" = false ]; then
+          echo ""
           echo "❌ ERROR: Failed to create SQL Server in all attempted regions!"
-          echo "Please try again later or contact Azure support."
+          echo ""
+          echo "🔍 Possible reasons:"
+          echo "1. SQL Server name '$SQL_SERVER_NAME' already exists in another resource group"
+          echo "2. Capacity issues in all attempted regions"
+          echo "3. Azure subscription restrictions or quotas"
+          echo ""
+          echo "🔧 Troubleshooting steps:"
+          echo "1. Check if server exists: az sql server list --query \"[?name=='$SQL_SERVER_NAME']\""
+          echo "2. Try deleting old resource groups: az group list --query \"[?starts_with(name, 'vermillion')].name\""
+          echo "3. Contact Azure support if issue persists"
           exit 1
         fi
         
@@ -135,7 +167,7 @@ jobs:
         echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
         echo "SQL_ADMIN_USER=$SQL_ADMIN_USER" >> $GITHUB_ENV
         echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
-        echo "✅ SQL Server successfully created: $SQL_SERVER_NAME in region: $LOCATION"
+        echo "✅ SQL Server successfully configured: $SQL_SERVER_NAME in region: $LOCATION"
 
     - name: 🔥 Configure SQL Server Firewall
       run: |
