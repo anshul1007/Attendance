@@ -79,41 +79,52 @@ jobs:
         LOCATION="${{ github.event.inputs.location }}"
         SQL_CREATED=false
         
-        echo "Attempting to create SQL Server: $SQL_SERVER_NAME in region: $LOCATION"
+        echo "Checking if SQL Server already exists: $SQL_SERVER_NAME"
         
-        # Try primary location first
-        if az sql server create \
-          --name $SQL_SERVER_NAME \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --location $LOCATION \
-          --admin-user $SQL_ADMIN_USER \
-          --admin-password $SQL_ADMIN_PASSWORD; then
-          echo "✅ SQL Server created in $LOCATION: $SQL_SERVER_NAME"
+        # Check if SQL server already exists
+        if az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
+          echo "✅ SQL Server already exists: $SQL_SERVER_NAME"
+          EXISTING_LOCATION=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} --query "location" -o tsv)
+          echo "📍 Using existing SQL Server in location: $EXISTING_LOCATION"
+          LOCATION=$EXISTING_LOCATION
           SQL_CREATED=true
         else
-          echo "⚠️ Failed to create SQL Server in $LOCATION, trying alternative regions..."
+          echo "Creating new SQL Server: $SQL_SERVER_NAME in region: $LOCATION"
           
-          # Try alternative European regions
-          for ALT_LOCATION in "northeurope" "francecentral" "uksouth" "germanywestcentral" "swedencentral" "eastus" "westus2"; do
-            echo "Trying $ALT_LOCATION..."
+          # Try primary location first
+          if az sql server create \
+            --name $SQL_SERVER_NAME \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --location $LOCATION \
+            --admin-user $SQL_ADMIN_USER \
+            --admin-password $SQL_ADMIN_PASSWORD; then
+            echo "✅ SQL Server created in $LOCATION: $SQL_SERVER_NAME"
+            SQL_CREATED=true
+          else
+            echo "⚠️ Failed to create SQL Server in $LOCATION, trying alternative regions..."
             
-            if az sql server create \
-              --name $SQL_SERVER_NAME \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --location $ALT_LOCATION \
-              --admin-user $SQL_ADMIN_USER \
-              --admin-password $SQL_ADMIN_PASSWORD; then
-              echo "✅ SQL Server created in $ALT_LOCATION: $SQL_SERVER_NAME"
-              LOCATION=$ALT_LOCATION
-              SQL_CREATED=true
-              break
-            else
-              echo "❌ Failed in $ALT_LOCATION, trying next region..."
-            fi
-          done
+            # Try alternative European regions
+            for ALT_LOCATION in "northeurope" "francecentral" "uksouth" "germanywestcentral" "swedencentral" "eastus" "westus2"; do
+              echo "Trying $ALT_LOCATION..."
+              
+              if az sql server create \
+                --name $SQL_SERVER_NAME \
+                --resource-group ${{ env.RESOURCE_GROUP }} \
+                --location $ALT_LOCATION \
+                --admin-user $SQL_ADMIN_USER \
+                --admin-password $SQL_ADMIN_PASSWORD; then
+                echo "✅ SQL Server created in $ALT_LOCATION: $SQL_SERVER_NAME"
+                LOCATION=$ALT_LOCATION
+                SQL_CREATED=true
+                break
+              else
+                echo "❌ Failed in $ALT_LOCATION, trying next region..."
+              fi
+            done
+          fi
         fi
         
-        # Verify SQL Server was created
+        # Verify SQL Server exists
         if [ "$SQL_CREATED" = false ]; then
           echo "❌ ERROR: Failed to create SQL Server in all attempted regions!"
           echo "Please try again later or contact Azure support."
@@ -128,56 +139,79 @@ jobs:
 
     - name: 🔥 Configure SQL Server Firewall
       run: |
-        # Allow Azure services
+        # Allow Azure services (create or update)
         az sql server firewall-rule create \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --server ${{ env.SQL_SERVER_NAME }} \
+          --name AllowAzureServices \
+          --start-ip-address 0.0.0.0 \
+          --end-ip-address 0.0.0.0 \
+          2>/dev/null || az sql server firewall-rule update \
           --resource-group ${{ env.RESOURCE_GROUP }} \
           --server ${{ env.SQL_SERVER_NAME }} \
           --name AllowAzureServices \
           --start-ip-address 0.0.0.0 \
           --end-ip-address 0.0.0.0
         
-        echo "✅ Firewall rule created"
+        echo "✅ Firewall rule configured"
 
     - name: 💿 Create SQL Database
       run: |
-        az sql db create \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --server ${{ env.SQL_SERVER_NAME }} \
-          --name AttendanceDB \
-          --service-objective Basic \
-          --backup-storage-redundancy Local \
-          --no-wait
-        
-        echo "✅ Database creation started"
+        # Check if database already exists
+        if az sql db show --name AttendanceDB --server ${{ env.SQL_SERVER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
+          echo "✅ Database already exists: AttendanceDB"
+        else
+          echo "Creating database: AttendanceDB"
+          az sql db create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ env.SQL_SERVER_NAME }} \
+            --name AttendanceDB \
+            --service-objective Basic \
+            --backup-storage-redundancy Local \
+            --no-wait
+          echo "✅ Database creation started"
+        fi
 
     - name: 🌐 Create App Service Plan
       run: |
         ENV="${{ github.event.inputs.environment }}"
         APP_PLAN_NAME="vermillion-attendance-plan-${ENV}"
         
-        az appservice plan create \
-          --name $APP_PLAN_NAME \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --location ${{ github.event.inputs.location }} \
-          --sku B1 \
-          --is-linux
+        # Check if App Service Plan already exists
+        if az appservice plan show --name $APP_PLAN_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
+          echo "✅ App Service Plan already exists: $APP_PLAN_NAME"
+        else
+          echo "Creating App Service Plan: $APP_PLAN_NAME"
+          az appservice plan create \
+            --name $APP_PLAN_NAME \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --location ${{ env.SQL_LOCATION }} \
+            --sku B1 \
+            --is-linux
+          echo "✅ App Service Plan created: $APP_PLAN_NAME"
+        fi
         
         echo "APP_PLAN_NAME=$APP_PLAN_NAME" >> $GITHUB_ENV
-        echo "✅ App Service Plan created: $APP_PLAN_NAME"
 
     - name: 🚀 Create Web App (Backend)
       run: |
         ENV="${{ github.event.inputs.environment }}"
         WEBAPP_NAME="vermillion-api-${ENV}"
         
-        az webapp create \
-          --name $WEBAPP_NAME \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --plan ${{ env.APP_PLAN_NAME }} \
-          --runtime "DOTNETCORE:8.0"
+        # Check if Web App already exists
+        if az webapp show --name $WEBAPP_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
+          echo "✅ Web App already exists: $WEBAPP_NAME"
+        else
+          echo "Creating Web App: $WEBAPP_NAME"
+          az webapp create \
+            --name $WEBAPP_NAME \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --plan ${{ env.APP_PLAN_NAME }} \
+            --runtime "DOTNETCORE:8.0"
+          echo "✅ Web App created: $WEBAPP_NAME"
+        fi
         
         echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
-        echo "✅ Web App created: $WEBAPP_NAME"
 
     - name: 🔗 Configure Connection String
       run: |
@@ -207,14 +241,20 @@ jobs:
         ENV="${{ github.event.inputs.environment }}"
         STATIC_APP_NAME="vermillion-web-${ENV}"
         
-        az staticwebapp create \
-          --name $STATIC_APP_NAME \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --location ${{ github.event.inputs.location }} \
-          --sku Free
+        # Check if Static Web App already exists
+        if az staticwebapp show --name $STATIC_APP_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
+          echo "✅ Static Web App already exists: $STATIC_APP_NAME"
+        else
+          echo "Creating Static Web App: $STATIC_APP_NAME"
+          az staticwebapp create \
+            --name $STATIC_APP_NAME \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --location ${{ github.event.inputs.location }} \
+            --sku Free
+          echo "✅ Static Web App created: $STATIC_APP_NAME"
+        fi
         
         echo "STATIC_APP_NAME=$STATIC_APP_NAME" >> $GITHUB_ENV
-        echo "✅ Static Web App created: $STATIC_APP_NAME"
 
     - name: 📝 Get Deployment URLs
       run: |
