@@ -84,11 +84,33 @@ jobs:
         
         # Check if SQL server already exists in current resource group
         echo "Checking if SQL Server exists in resource group: ${{ env.RESOURCE_GROUP }}..."
-        if az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
-          echo "✅ SQL Server already exists in this resource group"
-          EXISTING_LOCATION=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} --query "location" -o tsv)
-          echo "   Using existing server in location: $EXISTING_LOCATION"
+        
+        set +e
+        SERVER_CHECK=$(az sql server show --name $SQL_SERVER_NAME --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null)
+        CHECK_RESULT=$?
+        set -e
+        
+        if [ $CHECK_RESULT -eq 0 ]; then
+          echo "✅ SQL Server already exists in this resource group: $SQL_SERVER_NAME"
+          EXISTING_LOCATION=$(echo "$SERVER_CHECK" | jq -r '.location')
+          echo "   Location: $EXISTING_LOCATION"
+          echo "   ⏭️  Skipping SQL Server creation"
           LOCATION=$EXISTING_LOCATION
+          
+          # Set environment variables and skip to end
+          echo "SQL_SERVER_NAME=$SQL_SERVER_NAME" >> $GITHUB_ENV
+          echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
+          echo "SQL_ADMIN_USER=$SQL_ADMIN_USER" >> $GITHUB_ENV
+          echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
+          
+          echo ""
+          echo "======================================"
+          echo "✅ SQL Server Ready (Existing)"
+          echo "======================================"
+          echo "Name: $SQL_SERVER_NAME"
+          echo "Location: $LOCATION"
+          echo "Resource Group: ${{ env.RESOURCE_GROUP }}"
+          echo ""
         else
           echo "SQL Server not found in current resource group. Creating new server..."
           echo ""
@@ -183,21 +205,22 @@ jobs:
               exit 1
             fi
           fi
+          
+          # Set environment variables after successful creation
+          echo ""
+          echo "======================================"
+          echo "✅ SQL Server Ready (Newly Created)"
+          echo "======================================"
+          echo "Name: $SQL_SERVER_NAME"
+          echo "Location: $LOCATION"
+          echo "Resource Group: ${{ env.RESOURCE_GROUP }}"
+          echo ""
+          
+          echo "SQL_SERVER_NAME=$SQL_SERVER_NAME" >> $GITHUB_ENV
+          echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
+          echo "SQL_ADMIN_USER=$SQL_ADMIN_USER" >> $GITHUB_ENV
+          echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
         fi
-        
-        echo ""
-        echo "======================================"
-        echo "✅ SQL Server Ready"
-        echo "======================================"
-        echo "Name: $SQL_SERVER_NAME"
-        echo "Location: $LOCATION"
-        echo "Resource Group: ${{ env.RESOURCE_GROUP }}"
-        echo ""
-        
-        echo "SQL_SERVER_NAME=$SQL_SERVER_NAME" >> $GITHUB_ENV
-        echo "SQL_LOCATION=$LOCATION" >> $GITHUB_ENV
-        echo "SQL_ADMIN_USER=$SQL_ADMIN_USER" >> $GITHUB_ENV
-        echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
 
     - name: 🔥 Configure SQL Server Firewall
       run: |
