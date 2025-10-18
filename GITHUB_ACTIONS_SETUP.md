@@ -152,7 +152,7 @@ Now let's create all Azure resources using GitHub Actions!
 1. Click **Run workflow** button (right side)
 2. Fill in the inputs:
    - **Resource Group Name**: `vermillion-attendance-rg`
-   - **Azure Region**: Select `centraleurope`
+   - **Azure Region**: Select `westeurope` (West Europe - Netherlands/Amsterdam)
 3. Click **Run workflow**
 
 ### C. Monitor Progress

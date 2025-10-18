@@ -10,12 +10,14 @@ on:
       location:
         description: 'Azure Region'
         required: true
-        default: 'centraleurope'
+        default: 'westeurope'
         type: choice
         options:
-          - centraleurope
           - westeurope
           - northeurope
+          - germanywestcentral
+          - francecentral
+          - uksouth
           - eastus
           - westus2
 

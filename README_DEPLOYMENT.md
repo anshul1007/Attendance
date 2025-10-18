@@ -59,7 +59,7 @@ This application is configured for **automated deployment to Azure** using **Git
 | Database (Azure SQL Basic) | $4.90 |
 | **Total** | **~$18/month** |
 
-**Location**: Central Europe (Netherlands)
+**Location**: West Europe (Netherlands/Amsterdam)
 
 ---
 
