@@ -39,7 +39,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        // Allow localhost for local development and the production Static Web App hostname
+        policy.WithOrigins(
+                "http://localhost:4200",
+                "https://vermillion-web-prod.azurestaticapps.net"
+            )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
