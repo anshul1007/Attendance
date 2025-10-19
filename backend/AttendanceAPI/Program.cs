@@ -8,55 +8,13 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add DbContext with PostgreSQL
-var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrEmpty(defaultConn))
-{
-    throw new InvalidOperationException("DefaultConnection is not configured");
-}
+var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection")
+                  ?? throw new InvalidOperationException("DefaultConnection is not configured");
 
+// Use SQL Server as the single provider for both local development and production
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // Improved heuristic: detect SQL Server by common SQL Server keywords, otherwise prefer Npgsql
-    var lower = defaultConn.ToLowerInvariant();
-
-    bool looksLikeSqlServer = lower.Contains("initial catalog")
-                            || lower.Contains("data source")
-                            || lower.Contains("server=")
-                            || lower.Contains("tcp:")
-                            || (lower.Contains("database=") && lower.Contains("user id="));
-
-    bool looksLikePostgres = lower.Contains("host=") || lower.Contains("port=") || lower.Contains("postgres");
-
-    // Mask password for logs
-    string maskedConn = defaultConn;
-    try
-    {
-        var pwdIdx = maskedConn.ToLowerInvariant().IndexOf("password=");
-        if (pwdIdx >= 0)
-        {
-            var end = maskedConn.IndexOf(';', pwdIdx);
-            if (end == -1) end = maskedConn.Length;
-            maskedConn = maskedConn.Remove(pwdIdx + "password=".Length, Math.Min(8, end - (pwdIdx + "password=".Length))).Insert(pwdIdx + "password=".Length, "********");
-        }
-    }
-    catch { /* ignore masking errors */ }
-
-    if (looksLikeSqlServer && !looksLikePostgres)
-    {
-        Console.WriteLine($"[Startup] Connection string appears to be SQL Server. Using SqlServer provider. Conn: {maskedConn}");
-        options.UseSqlServer(defaultConn);
-    }
-    else if (looksLikePostgres && !looksLikeSqlServer)
-    {
-        Console.WriteLine($"[Startup] Connection string appears to be Postgres. Using Npgsql provider. Conn: {maskedConn}");
-        options.UseNpgsql(defaultConn);
-    }
-    else
-    {
-        // Mixed/unknown: prefer SqlServer for Azure SQL style or fallback to SqlServer
-        Console.WriteLine($"[Startup] Connection string ambiguous. Preferring SqlServer provider. Conn: {maskedConn}");
-        options.UseSqlServer(defaultConn);
-    }
+    options.UseSqlServer(defaultConn);
 });
 
 // Add JWT Authentication
@@ -108,8 +66,27 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Seed the database
-await DatabaseSeeder.SeedDatabase(app.Services);
+// Apply migrations and seed the database
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        logger.LogInformation("Applying pending migrations (if any)...");
+        context.Database.Migrate();
+        logger.LogInformation("Migrations applied successfully.");
+
+        logger.LogInformation("Seeding database...");
+        await DatabaseSeeder.SeedDatabase(services);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        throw; // rethrow so the app fails fast and logs the error
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
