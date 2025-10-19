@@ -74,12 +74,16 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+        
+        // First, apply migrations to ensure schema exists
         logger.LogInformation("Applying pending migrations (if any)...");
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
         logger.LogInformation("Migrations applied successfully.");
 
+        // Then seed the database
         logger.LogInformation("Seeding database...");
         await DatabaseSeeder.SeedDatabase(services);
+        logger.LogInformation("Database seeding completed successfully!");
     }
     catch (Exception ex)
     {

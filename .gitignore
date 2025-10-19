@@ -494,7 +494,7 @@ pnpm-lock.yaml
 ####################
 
 # Attendance System specific
-/backend/AttendanceAPI/Migrations/
+# Note: Migrations should be committed to ensure database schema is version controlled
 /backend/AttendanceAPI/Logs/
 /scripts/backup/
 *.backup
